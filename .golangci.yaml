@@ -1,0 +1,41 @@
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+
+    - revive
+    - errorlint
+    - gocritic
+    - gosec
+    - errname
+    - lll
+
+linters-settings:
+  lll:
+    line-length: 100
+    tab-width: 4
+    exclude: "^//|http[s]?://"
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec

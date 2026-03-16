@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    container_name: rss_reader_app
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/tmp
