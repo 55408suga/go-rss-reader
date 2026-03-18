@@ -5,7 +5,7 @@ INSERT INTO feeds (
     $1, $2, $3, $4, $5, $6, $7, $8
 );
 
--- name: GetFeed :one
+-- name: GetFeedByID :one
 SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
 FROM feeds
 WHERE id = $1 LIMIT 1;
@@ -42,7 +42,7 @@ INSERT INTO articles (
     $1, $2, $3, $4, $5, $6, $7
 );
 
--- name: GetArticle :one
+-- name: GetArticleByID :one
 SELECT id, title, description, published_at, website_url, content, feed_id
 FROM articles
 WHERE id = $1 LIMIT 1;

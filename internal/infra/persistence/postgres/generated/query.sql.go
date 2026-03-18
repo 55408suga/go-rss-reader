@@ -101,14 +101,14 @@ func (q *Queries) GetAllFeeds(ctx context.Context) ([]Feed, error) {
 	return items, nil
 }
 
-const getArticle = `-- name: GetArticle :one
+const getArticleByID = `-- name: GetArticleByID :one
 SELECT id, title, description, published_at, website_url, content, feed_id
 FROM articles
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (Article, error) {
-	row := q.db.QueryRow(ctx, getArticle, id)
+func (q *Queries) GetArticleByID(ctx context.Context, id uuid.UUID) (Article, error) {
+	row := q.db.QueryRow(ctx, getArticleByID, id)
 	var i Article
 	err := row.Scan(
 		&i.ID,
@@ -157,14 +157,14 @@ func (q *Queries) GetArticles(ctx context.Context, feedID pgtype.UUID) ([]Articl
 	return items, nil
 }
 
-const getFeed = `-- name: GetFeed :one
+const getFeedByID = `-- name: GetFeedByID :one
 SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
 FROM feeds
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetFeed(ctx context.Context, id uuid.UUID) (Feed, error) {
-	row := q.db.QueryRow(ctx, getFeed, id)
+func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
+	row := q.db.QueryRow(ctx, getFeedByID, id)
 	var i Feed
 	err := row.Scan(
 		&i.ID,
