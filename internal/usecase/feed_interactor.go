@@ -4,6 +4,8 @@ import (
 	"context"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/domain/repository"
+
+	"github.com/google/uuid"
 )
 
 // FeedInteractor implements FeedUsecase interface.
@@ -36,7 +38,7 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 }
 
 // GetFeedByID returns a feed by its ID.
-func (i *FeedInteractor) GetFeedByID(ctx context.Context, feedID string) (*model.Feed, error) {
+func (i *FeedInteractor) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error) {
 	return i.feedRepo.GetFeed(ctx, feedID)
 }
 
@@ -58,6 +60,6 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID string) error {
 }
 
 // DeleteFeed deletes a feed by its ID.
-func (i *FeedInteractor) DeleteFeed(ctx context.Context, feedID string) error {
+func (i *FeedInteractor) DeleteFeed(ctx context.Context, feedID uuid.UUID) error {
 	return i.feedRepo.DeleteFeed(ctx, feedID)
 }

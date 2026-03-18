@@ -5,6 +5,8 @@ import (
 	"context"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/domain/repository"
+
+	"github.com/google/uuid"
 )
 
 // ArticleInteractor implements ArticleUsecase interface.
@@ -28,7 +30,7 @@ func NewArticleInteractor(
 }
 
 // GetArticlesByFeedID returns articles belonging to the given feed.
-func (i *ArticleInteractor) GetArticlesByFeedID(ctx context.Context, feedID string) ([]*model.Article, error) {
+func (i *ArticleInteractor) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
 	return i.feedRepo.GetArticles(ctx, feedID)
 }
 
