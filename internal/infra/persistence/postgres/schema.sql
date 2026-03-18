@@ -16,5 +16,5 @@ CREATE TABLE articles (
     published_at timestamp with time zone not null,
     website_url varchar(2048) NOT NULL UNIQUE,
     content text,
-    feed_id UUID REFERENCES feeds(id) ON DELETE CASCADE
+    feed_id UUID REFERENCES feeds(id) ON DELETE CASCADE NOT NULL
 );

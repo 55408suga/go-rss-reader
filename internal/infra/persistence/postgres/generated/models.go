@@ -18,7 +18,7 @@ type Article struct {
 	PublishedAt time.Time
 	WebsiteUrl  string
 	Content     pgtype.Text
-	FeedID      pgtype.UUID
+	FeedID      uuid.UUID
 }
 
 type Feed struct {

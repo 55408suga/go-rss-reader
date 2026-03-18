@@ -130,7 +130,7 @@ WHERE feed_id = $1
 ORDER BY published_at DESC
 `
 
-func (q *Queries) GetArticles(ctx context.Context, feedID pgtype.UUID) ([]Article, error) {
+func (q *Queries) GetArticles(ctx context.Context, feedID uuid.UUID) ([]Article, error) {
 	rows, err := q.db.Query(ctx, getArticles, feedID)
 	if err != nil {
 		return nil, err
@@ -195,7 +195,7 @@ type RegisterArticleParams struct {
 	PublishedAt time.Time
 	WebsiteUrl  string
 	Content     pgtype.Text
-	FeedID      pgtype.UUID
+	FeedID      uuid.UUID
 }
 
 func (q *Queries) RegisterArticle(ctx context.Context, arg RegisterArticleParams) error {
@@ -259,7 +259,7 @@ type UpdateArticleParams struct {
 	PublishedAt time.Time
 	WebsiteUrl  string
 	Content     pgtype.Text
-	FeedID      pgtype.UUID
+	FeedID      uuid.UUID
 	ID          uuid.UUID
 }
 
