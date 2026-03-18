@@ -5,6 +5,8 @@
 package generated
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -13,7 +15,7 @@ type Article struct {
 	ID          uuid.UUID
 	Title       string
 	Description pgtype.Text
-	PublishedAt pgtype.Timestamptz
+	PublishedAt time.Time
 	WebsiteUrl  string
 	Content     pgtype.Text
 	FeedID      pgtype.UUID
@@ -22,8 +24,8 @@ type Article struct {
 type Feed struct {
 	ID           uuid.UUID
 	Title        string
-	RegisteredAt pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	RegisteredAt time.Time
+	UpdatedAt    time.Time
 	FeedUrl      string
 	WebsiteUrl   string
 	Description  pgtype.Text

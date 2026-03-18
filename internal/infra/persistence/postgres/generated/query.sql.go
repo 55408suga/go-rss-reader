@@ -7,6 +7,7 @@ package generated
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -191,7 +192,7 @@ type RegisterArticleParams struct {
 	ID          uuid.UUID
 	Title       string
 	Description pgtype.Text
-	PublishedAt pgtype.Timestamptz
+	PublishedAt time.Time
 	WebsiteUrl  string
 	Content     pgtype.Text
 	FeedID      pgtype.UUID
@@ -214,26 +215,24 @@ const saveFeed = `-- name: SaveFeed :exec
 INSERT INTO feeds (
     id, title, registered_at, updated_at, feed_url, website_url, description, language
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7
 )
 `
 
 type SaveFeedParams struct {
-	ID           uuid.UUID
-	Title        string
-	RegisteredAt pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
-	FeedUrl      string
-	WebsiteUrl   string
-	Description  pgtype.Text
-	Language     pgtype.Text
+	ID          uuid.UUID
+	Title       string
+	UpdatedAt   time.Time
+	FeedUrl     string
+	WebsiteUrl  string
+	Description pgtype.Text
+	Language    pgtype.Text
 }
 
 func (q *Queries) SaveFeed(ctx context.Context, arg SaveFeedParams) error {
 	_, err := q.db.Exec(ctx, saveFeed,
 		arg.ID,
 		arg.Title,
-		arg.RegisteredAt,
 		arg.UpdatedAt,
 		arg.FeedUrl,
 		arg.WebsiteUrl,
@@ -257,7 +256,7 @@ WHERE id = $7
 type UpdateArticleParams struct {
 	Title       string
 	Description pgtype.Text
-	PublishedAt pgtype.Timestamptz
+	PublishedAt time.Time
 	WebsiteUrl  string
 	Content     pgtype.Text
 	FeedID      pgtype.UUID
@@ -290,7 +289,7 @@ WHERE id = $7
 
 type UpdateFeedParams struct {
 	Title       string
-	UpdatedAt   pgtype.Timestamptz
+	UpdatedAt   time.Time
 	FeedUrl     string
 	WebsiteUrl  string
 	Description pgtype.Text
