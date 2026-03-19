@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"rss_reader/internal/domain/model"
+
+	"github.com/google/uuid"
 )
 
 // FeedFetcher defines the interface for fetching feed metadata from external sources.
@@ -12,7 +14,7 @@ type FeedFetcher interface {
 
 // ArticleFetcher defines the interface for fetching articles from external sources.
 type ArticleFetcher interface {
-	FetchArticles(ctx context.Context, feedURL string) ([]*model.Article, error)
+	FetchArticles(ctx context.Context, feedID uuid.UUID, feedURL string) ([]*model.Article, error)
 }
 
 // FeedUsecase defines the interface for feed-related use cases.

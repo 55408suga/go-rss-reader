@@ -41,7 +41,7 @@ func (i *ArticleInteractor) RefreshArticles(ctx context.Context) error {
 		return err
 	}
 	for _, feed := range feeds {
-		articles, err := i.fetcher.FetchArticles(ctx, feed.FeedURL)
+		articles, err := i.fetcher.FetchArticles(ctx, feed.ID, feed.FeedURL)
 		if err != nil {
 			return err
 		}

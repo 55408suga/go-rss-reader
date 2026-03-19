@@ -60,10 +60,10 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 		return nil, err
 	}
 
-	//convert generated.Feed to model.Feed
-	feedModels := make([]*model.Feed, len(feeds))
-	for i, feed := range feeds {
-		feedModels[i] = &model.Feed{
+	// convert generated.Feed to model.Feed
+	feedModels := make([]*model.Feed, 0, len(feeds))
+	for _, feed := range feeds {
+		feedModel := &model.Feed{
 			ID:          feed.ID,
 			Title:       feed.Title,
 			UpdatedAt:   feed.UpdatedAt,
@@ -72,6 +72,7 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 			Description: feed.Description.String,
 			Language:    feed.Language.String,
 		}
+		feedModels = append(feedModels, feedModel)
 	}
 	return feedModels, nil
 }
@@ -82,10 +83,10 @@ func (r *FeedRepository) GetArticles(ctx context.Context, feedID uuid.UUID) ([]*
 		return nil, err
 	}
 
-	//convert generated.Article to model.Article
-	articleModels := make([]*model.Article, len(articles))
-	for i, article := range articles {
-		articleModels[i] = &model.Article{
+	// convert generated.Article to model.Article
+	articleModels := make([]*model.Article, 0, len(articles))
+	for _, article := range articles {
+		articleModel := &model.Article{
 			ID:          article.ID,
 			Title:       article.Title,
 			Description: article.Description.String,
@@ -94,6 +95,7 @@ func (r *FeedRepository) GetArticles(ctx context.Context, feedID uuid.UUID) ([]*
 			Content:     article.Content.String,
 			FeedID:      article.FeedID,
 		}
+		articleModels = append(articleModels, articleModel)
 	}
 	return articleModels, nil
 }
