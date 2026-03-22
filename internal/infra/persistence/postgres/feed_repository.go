@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"rss_reader/internal/domain/model"
-	"rss_reader/internal/domain/repository"
 	"rss_reader/internal/infra/persistence/postgres/generated"
 
 	"github.com/google/uuid"
@@ -13,13 +12,11 @@ import (
 )
 
 type FeedRepository struct {
-	db      *pgxpool.Pool
 	queries *generated.Queries
 }
 
-func NewFeedRepository(db *pgxpool.Pool) repository.FeedRepository {
+func NewFeedRepository(db *pgxpool.Pool) *FeedRepository {
 	return &FeedRepository{
-		db:      db,
 		queries: generated.New(db),
 	}
 }
@@ -75,29 +72,6 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 		feedModels = append(feedModels, feedModel)
 	}
 	return feedModels, nil
-}
-
-func (r *FeedRepository) GetArticles(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
-	articles, err := r.queries.GetArticles(ctx, feedID)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert generated.Article to model.Article
-	articleModels := make([]*model.Article, 0, len(articles))
-	for _, article := range articles {
-		articleModel := &model.Article{
-			ID:          article.ID,
-			Title:       article.Title,
-			Description: article.Description.String,
-			PublishedAt: article.PublishedAt,
-			WebsiteURL:  article.WebsiteUrl,
-			Content:     article.Content.String,
-			FeedID:      article.FeedID,
-		}
-		articleModels = append(articleModels, articleModel)
-	}
-	return articleModels, nil
 }
 
 func (r *FeedRepository) UpdateFeed(ctx context.Context, feed *model.Feed) error {

@@ -48,11 +48,18 @@ func (i *FeedInteractor) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 }
 
 // RefreshFeed fetches latest feed for the given feed and saves it.
-func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID string) error {
-	feedData, err := i.fetcher.FetchFeed(ctx, feedID)
+func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) error {
+	currentFeed, err := i.feedRepo.GetFeed(ctx, feedID)
 	if err != nil {
 		return err
 	}
+
+	feedData, err := i.fetcher.FetchFeed(ctx, currentFeed.FeedURL)
+	if err != nil {
+		return err
+	}
+	feedData.ID = currentFeed.ID
+
 	if err := i.feedRepo.UpdateFeed(ctx, feedData); err != nil {
 		return err
 	}

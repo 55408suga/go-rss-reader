@@ -31,7 +31,7 @@ func NewArticleInteractor(
 
 // GetArticlesByFeedID returns articles belonging to the given feed.
 func (i *ArticleInteractor) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
-	return i.feedRepo.GetArticles(ctx, feedID)
+	return i.articleRepo.GetArticlesByFeedID(ctx, feedID)
 }
 
 // RefreshArticles fetches latest articles for the given feed and saves them.

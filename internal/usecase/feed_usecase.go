@@ -20,14 +20,14 @@ type ArticleFetcher interface {
 // FeedUsecase defines the interface for feed-related use cases.
 type FeedUsecase interface {
 	RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, error)
-	GetFeedByID(ctx context.Context, feedID string) (*model.Feed, error)
+	GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error)
 	GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
-	RefreshFeed(ctx context.Context, feedID string) error
-	DeleteFeed(ctx context.Context, feedID string) error
+	RefreshFeed(ctx context.Context, feedID uuid.UUID) error
+	DeleteFeed(ctx context.Context, feedID uuid.UUID) error
 }
 
 // ArticleUsecase defines the interface for article-related use cases.
 type ArticleUsecase interface {
-	GetArticlesByFeedID(ctx context.Context, feedID string) ([]*model.Article, error)
+	GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error)
 	RefreshArticles(ctx context.Context) error
 }
