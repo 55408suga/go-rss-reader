@@ -20,8 +20,8 @@ func NewRSSGateway() *RSSGateway {
 	}
 }
 
-func (rf *RSSGateway) FetchFeed(ctx context.Context, feedURL string) (*model.Feed, error) {
-	feedData, err := rf.parser.ParseURLWithContext(feedURL, ctx)
+func (rg *RSSGateway) FetchFeed(ctx context.Context, feedURL string) (*model.Feed, error) {
+	feedData, err := rg.parser.ParseURLWithContext(feedURL, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +45,8 @@ func (rf *RSSGateway) FetchFeed(ctx context.Context, feedURL string) (*model.Fee
 	return feed, nil
 }
 
-func (rf *RSSGateway) FetchArticles(ctx context.Context, feedID uuid.UUID, feedURL string) ([]*model.Article, error) {
-	feedData, err := rf.parser.ParseURLWithContext(feedURL, ctx)
+func (rg *RSSGateway) FetchArticles(ctx context.Context, feedID uuid.UUID, feedURL string) ([]*model.Article, error) {
+	feedData, err := rg.parser.ParseURLWithContext(feedURL, ctx)
 	if err != nil {
 		return nil, err
 	}
