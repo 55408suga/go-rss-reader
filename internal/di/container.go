@@ -12,6 +12,7 @@ import (
 type ApplicationComponents struct {
 	FeedHandler    handler.FeedHandler
 	ArticleHandler handler.ArticleHandler
+	close          func() error
 }
 
 func NewApplicationComponents() *ApplicationComponents {
@@ -43,5 +44,13 @@ func NewApplicationComponents() *ApplicationComponents {
 	return &ApplicationComponents{
 		FeedHandler:    *feedHandler,
 		ArticleHandler: *articleHandler,
+		close:          func() error { db.Close(); return nil },
 	}
+}
+
+func (ac *ApplicationComponents) Close() error {
+	if ac.close != nil {
+		return ac.close()
+	}
+	return nil
 }

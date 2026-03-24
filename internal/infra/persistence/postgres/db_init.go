@@ -3,7 +3,6 @@ package postgres
 
 import (
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -12,7 +11,7 @@ import (
 func NewDB(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
-		log.Fatalf("unable to connect to database: %v\n", err)
+		return nil, err
 	}
 	return pool, nil
 }
