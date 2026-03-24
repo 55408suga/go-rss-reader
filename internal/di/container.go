@@ -2,23 +2,18 @@ package di
 
 import (
 	"context"
+	"rss_reader/internal/handler"
 	"rss_reader/internal/infra/config"
 	"rss_reader/internal/infra/gateway"
 	"rss_reader/internal/infra/persistence/postgres"
 	"rss_reader/internal/usecase"
 )
 
-// ApplicationComponents はアプリケーションの全依存を束ねる構造体。
-// main.go からはこの構造体を通じてハンドラにアクセスする。
 type ApplicationComponents struct {
-	FeedUsecase    usecase.FeedUsecase
-	ArticleUsecase usecase.ArticleUsecase
+	FeedHandler    handler.FeedHandler
+	ArticleHandler handler.ArticleHandler
 }
 
-//	func main() {
-//	    components := di.NewApplicationComponents()
-//	    router.Setup(e, components)
-//	}
 func NewApplicationComponents() *ApplicationComponents {
 	ctx := context.Background()
 	// ── 1. Config ──
@@ -42,10 +37,11 @@ func NewApplicationComponents() *ApplicationComponents {
 	articleUC := usecase.NewArticleInteractor(articleRepo, feedRepo, rssGateway)
 
 	// ── 6. Handler ──
-	// feedHandler := handler.NewFeedHandler(feedUC)
+	feedHandler := handler.NewFeedHandler(feedUC)
+	articleHandler := handler.NewArticleHandler(articleUC)
 
 	return &ApplicationComponents{
-		FeedUsecase:    feedUC,
-		ArticleUsecase: articleUC,
+		FeedHandler:    *feedHandler,
+		ArticleHandler: *articleHandler,
 	}
 }
