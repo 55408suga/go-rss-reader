@@ -33,11 +33,14 @@ func NewApplicationComponents() *ApplicationComponents {
 	// ── 4. Gateway ──
 	rssGateway := gateway.NewRSSGateway()
 
-	// ── 5. Usecase ──
-	feedUC := usecase.NewFeedInteractor(feedRepo, rssGateway)
-	articleUC := usecase.NewArticleInteractor(articleRepo, feedRepo, rssGateway)
+	// ── 5. Transaction Manager ──
+	txManager := postgres.NewPgTransactionManager(db)
 
-	// ── 6. Handler ──
+	// ── 6. Usecase ──
+	feedUC := usecase.NewFeedInteractor(feedRepo, articleRepo, rssGateway, txManager)
+	articleUC := usecase.NewArticleInteractor(articleRepo)
+
+	// ── 7. Handler ──
 	feedHandler := handler.NewFeedHandler(feedUC)
 	articleHandler := handler.NewArticleHandler(articleUC)
 

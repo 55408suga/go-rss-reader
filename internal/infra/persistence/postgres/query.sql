@@ -35,7 +35,7 @@ WHERE id = $7;
 DELETE FROM feeds
 WHERE id = $1;
 
--- name: RegisterArticle :exec
+-- name: SaveArticle :exec
 INSERT INTO articles (
     id, title, description, published_at, website_url, content, feed_id
 ) VALUES (

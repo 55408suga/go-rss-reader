@@ -12,13 +12,21 @@ import (
 )
 
 type FeedRepository struct {
-	queries *generated.Queries
+	pool *pgxpool.Pool
 }
 
-func NewFeedRepository(db *pgxpool.Pool) *FeedRepository {
+func NewFeedRepository(pool *pgxpool.Pool) *FeedRepository {
 	return &FeedRepository{
-		queries: generated.New(db),
+		pool: pool,
 	}
+}
+
+// querier returns a Queries instance that uses the transaction from context if available.
+func (r *FeedRepository) querier(ctx context.Context) *generated.Queries {
+	if tx := TxFromContext(ctx); tx != nil {
+		return generated.New(tx)
+	}
+	return generated.New(r.pool)
 }
 
 func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
@@ -31,11 +39,11 @@ func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
 		Description: pgtype.Text{String: feed.Description, Valid: feed.Description != ""},
 		Language:    pgtype.Text{String: feed.Language, Valid: feed.Language != ""},
 	}
-	return r.queries.SaveFeed(ctx, params)
+	return r.querier(ctx).SaveFeed(ctx, params)
 }
 
 func (r *FeedRepository) GetFeed(ctx context.Context, feedID uuid.UUID) (*model.Feed, error) {
-	feed, err := r.queries.GetFeedByID(ctx, feedID)
+	feed, err := r.querier(ctx).GetFeedByID(ctx, feedID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +60,7 @@ func (r *FeedRepository) GetFeed(ctx context.Context, feedID uuid.UUID) (*model.
 }
 
 func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error) {
-	feeds, err := r.queries.GetAllFeeds(ctx)
+	feeds, err := r.querier(ctx).GetAllFeeds(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -84,9 +92,9 @@ func (r *FeedRepository) UpdateFeed(ctx context.Context, feed *model.Feed) error
 		Description: pgtype.Text{String: feed.Description, Valid: feed.Description != ""},
 		Language:    pgtype.Text{String: feed.Language, Valid: feed.Language != ""},
 	}
-	return r.queries.UpdateFeed(ctx, params)
+	return r.querier(ctx).UpdateFeed(ctx, params)
 }
 
 func (r *FeedRepository) DeleteFeed(ctx context.Context, feedID uuid.UUID) error {
-	return r.queries.DeleteFeed(ctx, feedID)
+	return r.querier(ctx).DeleteFeed(ctx, feedID)
 }

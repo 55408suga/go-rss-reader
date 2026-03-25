@@ -29,11 +29,3 @@ func (ah *ArticleHandler) GetArticlesByFeedID(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, articles)
 }
-
-func (ah *ArticleHandler) RefreshArticles(c *echo.Context) error {
-	if err := ah.articleUsecase.RefreshArticles(c.Request().Context()); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to refresh articles")
-	}
-
-	return c.NoContent(http.StatusNoContent)
-}

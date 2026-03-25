@@ -12,17 +12,25 @@ import (
 )
 
 type ArticleRepository struct {
-	queries *generated.Queries
+	pool *pgxpool.Pool
 }
 
-func NewArticleRepository(db *pgxpool.Pool) *ArticleRepository {
+func NewArticleRepository(pool *pgxpool.Pool) *ArticleRepository {
 	return &ArticleRepository{
-		queries: generated.New(db),
+		pool: pool,
 	}
 }
 
-func (r *ArticleRepository) RegisterArticle(ctx context.Context, article *model.Article) error {
-	params := generated.RegisterArticleParams{
+// querier returns a Queries instance that uses the transaction from context if available.
+func (r *ArticleRepository) querier(ctx context.Context) *generated.Queries {
+	if tx := TxFromContext(ctx); tx != nil {
+		return generated.New(tx)
+	}
+	return generated.New(r.pool)
+}
+
+func (r *ArticleRepository) SaveArticle(ctx context.Context, article *model.Article) error {
+	params := generated.SaveArticleParams{
 		ID:          article.ID,
 		Title:       article.Title,
 		Description: pgtype.Text{String: article.Description, Valid: article.Description != ""},
@@ -31,11 +39,11 @@ func (r *ArticleRepository) RegisterArticle(ctx context.Context, article *model.
 		Content:     pgtype.Text{String: article.Content, Valid: article.Content != ""},
 		FeedID:      article.FeedID,
 	}
-	return r.queries.RegisterArticle(ctx, params)
+	return r.querier(ctx).SaveArticle(ctx, params)
 }
 
 func (r *ArticleRepository) GetArticle(ctx context.Context, articleID uuid.UUID) (*model.Article, error) {
-	article, err := r.queries.GetArticleByID(ctx, articleID)
+	article, err := r.querier(ctx).GetArticleByID(ctx, articleID)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +52,7 @@ func (r *ArticleRepository) GetArticle(ctx context.Context, articleID uuid.UUID)
 }
 
 func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
-	articles, err := r.queries.GetArticles(ctx, feedID)
+	articles, err := r.querier(ctx).GetArticles(ctx, feedID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +65,7 @@ func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid
 }
 
 func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Article, error) {
-	articles, err := r.queries.GetAllArticles(ctx)
+	articles, err := r.querier(ctx).GetAllArticles(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,11 +87,11 @@ func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Ar
 		FeedID:      article.FeedID,
 		ID:          article.ID,
 	}
-	return r.queries.UpdateArticle(ctx, params)
+	return r.querier(ctx).UpdateArticle(ctx, params)
 }
 
 func (r *ArticleRepository) DeleteArticle(ctx context.Context, articleID uuid.UUID) error {
-	return r.queries.DeleteArticle(ctx, articleID)
+	return r.querier(ctx).DeleteArticle(ctx, articleID)
 }
 
 func toArticleModel(article generated.Article) *model.Article {

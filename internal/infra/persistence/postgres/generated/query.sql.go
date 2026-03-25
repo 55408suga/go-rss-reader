@@ -180,7 +180,7 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 	return i, err
 }
 
-const registerArticle = `-- name: RegisterArticle :exec
+const saveArticle = `-- name: SaveArticle :exec
 INSERT INTO articles (
     id, title, description, published_at, website_url, content, feed_id
 ) VALUES (
@@ -188,7 +188,7 @@ INSERT INTO articles (
 )
 `
 
-type RegisterArticleParams struct {
+type SaveArticleParams struct {
 	ID          uuid.UUID
 	Title       string
 	Description pgtype.Text
@@ -198,8 +198,8 @@ type RegisterArticleParams struct {
 	FeedID      uuid.UUID
 }
 
-func (q *Queries) RegisterArticle(ctx context.Context, arg RegisterArticleParams) error {
-	_, err := q.db.Exec(ctx, registerArticle,
+func (q *Queries) SaveArticle(ctx context.Context, arg SaveArticleParams) error {
+	_, err := q.db.Exec(ctx, saveArticle,
 		arg.ID,
 		arg.Title,
 		arg.Description,

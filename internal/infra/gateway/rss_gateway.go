@@ -20,17 +20,20 @@ func NewRSSGateway() *RSSGateway {
 	}
 }
 
-func (rg *RSSGateway) FetchFeed(ctx context.Context, feedURL string) (*model.Feed, error) {
+// FetchFeedWithArticles fetches and parses an RSS feed URL, returning both
+// the feed metadata and all articles in a single HTTP request.
+// Article FeedIDs are set to uuid.Nil; callers must set them after feed is persisted.
+func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error) {
 	feedData, err := rg.parser.ParseURLWithContext(feedURL, ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	// Build model.Feed
 	updatedAt := time.Now().UTC()
 	if feedData.UpdatedParsed != nil {
 		updatedAt = feedData.UpdatedParsed.UTC()
 	}
-	// Convert gofeed.Feed to model.Feed
 	feed, err := model.NewFeed(
 		feedData.Title,
 		feedURL,
@@ -40,22 +43,17 @@ func (rg *RSSGateway) FetchFeed(ctx context.Context, feedURL string) (*model.Fee
 		updatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return feed, nil
-}
 
-func (rg *RSSGateway) FetchArticles(ctx context.Context, feedID uuid.UUID, feedURL string) ([]*model.Article, error) {
-	feedData, err := rg.parser.ParseURLWithContext(feedURL, ctx)
-	if err != nil {
-		return nil, err
-	}
+	// Build model.Article list
 	articles := make([]*model.Article, 0, len(feedData.Items))
-	// convert gofeed.Item to model.Article
 	for _, item := range feedData.Items {
 		publishedAt := time.Now().UTC()
 		if item.PublishedParsed != nil {
 			publishedAt = item.PublishedParsed.UTC()
+		} else if item.UpdatedParsed != nil {
+			publishedAt = item.UpdatedParsed.UTC()
 		}
 
 		article, err := model.NewArticle(
@@ -64,12 +62,13 @@ func (rg *RSSGateway) FetchArticles(ctx context.Context, feedID uuid.UUID, feedU
 			item.Content,
 			item.Link,
 			publishedAt,
-			feedID,
+			uuid.Nil, // FeedID will be set by the caller after feed is saved
 		)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		articles = append(articles, article)
 	}
-	return articles, nil
+
+	return feed, articles, nil
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"rss_reader/internal/domain/model"
 	"rss_reader/internal/usecase"
 
 	"github.com/go-playground/validator/v10"
@@ -17,6 +18,11 @@ type FeedHandler struct {
 
 type RegisterFeedRequest struct {
 	FeedURL string `json:"feed_url" validate:"required,url"`
+}
+
+type RegisterFeedResponse struct {
+	Feed     *model.Feed      `json:"feed"`
+	Articles []*model.Article `json:"articles"`
 }
 
 var requestValidator = validator.New(validator.WithRequiredStructEnabled())
@@ -37,12 +43,15 @@ func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "validation failed")
 	}
 
-	feed, err := fh.feedUsecase.RegisterFeed(c.Request().Context(), req.FeedURL)
+	feed, articles, err := fh.feedUsecase.RegisterFeed(c.Request().Context(), req.FeedURL)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to register feed")
 	}
 
-	return c.JSON(http.StatusCreated, feed)
+	return c.JSON(http.StatusCreated, RegisterFeedResponse{
+		Feed:     feed,
+		Articles: articles,
+	})
 }
 
 func (fh *FeedHandler) GetAllFeeds(c *echo.Context) error {
@@ -69,6 +78,30 @@ func (fh *FeedHandler) GetFeedByID(c *echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, feed)
+}
+
+func (fh *FeedHandler) RefreshFeed(c *echo.Context) error {
+	feedID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid feed id")
+	}
+
+	if err := fh.feedUsecase.RefreshFeed(c.Request().Context(), feedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return echo.NewHTTPError(http.StatusNotFound, "feed not found")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to refresh feed")
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (fh *FeedHandler) RefreshAllFeeds(c *echo.Context) error {
+	if err := fh.feedUsecase.RefreshAllFeeds(c.Request().Context()); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to refresh feeds")
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }
 
 func (fh *FeedHandler) DeleteFeed(c *echo.Context) error {

@@ -10,31 +10,51 @@ import (
 
 // FeedInteractor implements FeedUsecase interface.
 type FeedInteractor struct {
-	feedRepo repository.FeedRepository
-	fetcher  FeedFetcher
+	feedRepo    repository.FeedRepository
+	articleRepo repository.ArticleRepository
+	fetcher     RSSFetcher
+	txManager   TransactionManager
 }
 
 // NewFeedInteractor represents constructor of FeedInteractor.
 func NewFeedInteractor(
 	feedRepo repository.FeedRepository,
-	fetcher FeedFetcher,
+	articleRepo repository.ArticleRepository,
+	fetcher RSSFetcher,
+	txManager TransactionManager,
 ) *FeedInteractor {
 	return &FeedInteractor{
-		feedRepo: feedRepo,
-		fetcher:  fetcher,
+		feedRepo:    feedRepo,
+		articleRepo: articleRepo,
+		fetcher:     fetcher,
+		txManager:   txManager,
 	}
 }
 
-// RegisterFeed fetches a feed from the given URL and saves it.
-func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, error) {
-	feedData, err := i.fetcher.FetchFeed(ctx, feedURL)
+// RegisterFeed fetches a feed with articles from the given URL and saves them atomically.
+func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error) {
+	feed, articles, err := i.fetcher.FetchFeedWithArticles(ctx, feedURL)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if err := i.feedRepo.SaveFeed(ctx, feedData); err != nil {
-		return nil, err
+
+	err = i.txManager.WithTransaction(ctx, func(txCtx context.Context) error {
+		if err := i.feedRepo.SaveFeed(txCtx, feed); err != nil {
+			return err
+		}
+		for _, article := range articles {
+			article.FeedID = feed.ID
+			if err := i.articleRepo.SaveArticle(txCtx, article); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-	return feedData, nil
+
+	return feed, articles, nil
 }
 
 // GetFeedByID returns a feed by its ID.
@@ -47,21 +67,43 @@ func (i *FeedInteractor) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 	return i.feedRepo.GetAllFeeds(ctx)
 }
 
-// RefreshFeed fetches latest feed for the given feed and saves it.
+// RefreshFeed fetches latest feed metadata and articles for the given feed and saves them atomically.
 func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) error {
 	currentFeed, err := i.feedRepo.GetFeed(ctx, feedID)
 	if err != nil {
 		return err
 	}
 
-	feedData, err := i.fetcher.FetchFeed(ctx, currentFeed.FeedURL)
+	feed, articles, err := i.fetcher.FetchFeedWithArticles(ctx, currentFeed.FeedURL)
 	if err != nil {
 		return err
 	}
-	feedData.ID = currentFeed.ID
+	feed.ID = currentFeed.ID
 
-	if err := i.feedRepo.UpdateFeed(ctx, feedData); err != nil {
+	return i.txManager.WithTransaction(ctx, func(txCtx context.Context) error {
+		if err := i.feedRepo.UpdateFeed(txCtx, feed); err != nil {
+			return err
+		}
+		for _, article := range articles {
+			article.FeedID = feed.ID
+			if err := i.articleRepo.SaveArticle(txCtx, article); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// RefreshAllFeeds refreshes all registered feeds and their articles.
+func (i *FeedInteractor) RefreshAllFeeds(ctx context.Context) error {
+	feeds, err := i.feedRepo.GetAllFeeds(ctx)
+	if err != nil {
 		return err
+	}
+	for _, feed := range feeds {
+		if err := i.RefreshFeed(ctx, feed.ID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
