@@ -15,7 +15,6 @@ type Feed struct {
 	Description string    `json:"description"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Language    string    `json:"language"`
-	Articles    []Article `json:"articles"`
 }
 
 // NewFeed creates a new feed instance with generating uuidv7
