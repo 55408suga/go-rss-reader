@@ -27,9 +27,10 @@ func main() {
 
 	router.SetupRoutes(e, components)
 	sc := echo.StartConfig{
-		Address: ":8080",
+		Address:         ":8080",
+		GracefulTimeout: 5 * time.Second,
 	}
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // start shutdown process on signal
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	if err := sc.Start(ctx, e); err != nil {
 		e.Logger.Error("failed to start server", "error", err)
