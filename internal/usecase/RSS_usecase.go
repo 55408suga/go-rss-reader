@@ -25,4 +25,5 @@ type FeedUsecase interface {
 // ArticleUsecase defines the interface for article-related use cases.
 type ArticleUsecase interface {
 	GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error)
+	GetAllArticles(ctx context.Context) ([]*model.Article, error)
 }

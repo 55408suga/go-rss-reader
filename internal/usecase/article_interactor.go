@@ -27,3 +27,7 @@ func NewArticleInteractor(
 func (i *ArticleInteractor) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
 	return i.articleRepo.GetArticlesByFeedID(ctx, feedID)
 }
+
+func (i *ArticleInteractor) GetAllArticles(ctx context.Context) ([]*model.Article, error) {
+	return i.articleRepo.GetAllArticles(ctx)
+}

@@ -29,3 +29,12 @@ func (ah *ArticleHandler) GetArticlesByFeedID(c *echo.Context) error {
 
 	return c.JSON(http.StatusOK, articles)
 }
+
+func (ah *ArticleHandler) GetAllArticles(c *echo.Context) error {
+	articles, err := ah.articleUsecase.GetAllArticles(c.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch articles")
+	}
+
+	return c.JSON(http.StatusOK, articles)
+}

@@ -18,5 +18,6 @@ func SetupRoutes(e *echo.Echo, components *di.ApplicationComponents) {
 	v1.DELETE("/feeds/:id", components.FeedHandler.DeleteFeed)
 
 	// Article routes
+	v1.GET("/articles", components.ArticleHandler.GetAllArticles)
 	v1.GET("/feeds/:feed_id/articles", components.ArticleHandler.GetArticlesByFeedID)
 }
