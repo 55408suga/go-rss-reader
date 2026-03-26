@@ -7,11 +7,18 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+      GOMODCACHE: /go/pkg/mod
+      GOCACHE: /root/.cache/go-build
     volumes:
       - .:/app
       - /app/tmp
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    networks:
+      - app-network
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:18-alpine
@@ -24,9 +31,23 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/18/data
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
 
 volumes:
   pgdata:
+  go-mod-cache:
+  go-build-cache:
+
+
+networks:
+  app-network:
 
 
