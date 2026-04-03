@@ -16,10 +16,11 @@ type Article struct {
 	WebsiteURL  string    `json:"website_url"`
 	PublishedAt time.Time `json:"published_at"`
 	FeedID      uuid.UUID `json:"feed_id"`
+	ExternalID  string    `json:"external_id"`
 }
 
 // NewArticle creates a new article instance with generating uuidv7
-func NewArticle(title, description, content, websiteURL string, publishedAt time.Time, feedID uuid.UUID) (*Article, error) {
+func NewArticle(title, description, content, websiteURL string, publishedAt time.Time, feedID uuid.UUID, externalID string) (*Article, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
@@ -33,5 +34,6 @@ func NewArticle(title, description, content, websiteURL string, publishedAt time
 		WebsiteURL:  websiteURL,
 		PublishedAt: publishedAt,
 		FeedID:      feedID,
+		ExternalID:  externalID,
 	}, nil
 }

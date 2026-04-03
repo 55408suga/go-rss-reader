@@ -2,12 +2,12 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/infra/persistence/postgres/generated"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,11 +33,12 @@ func (r *ArticleRepository) SaveArticle(ctx context.Context, article *model.Arti
 	params := generated.SaveArticleParams{
 		ID:          article.ID,
 		Title:       article.Title,
-		Description: pgtype.Text{String: article.Description, Valid: article.Description != ""},
+		Description: stringPtrOrNil(article.Description),
 		PublishedAt: article.PublishedAt,
 		WebsiteUrl:  article.WebsiteURL,
-		Content:     pgtype.Text{String: article.Content, Valid: article.Content != ""},
+		Content:     stringPtrOrNil(article.Content),
 		FeedID:      article.FeedID,
+		ExternalID:  article.ExternalID,
 	}
 	return r.querier(ctx).SaveArticle(ctx, params)
 }
@@ -48,7 +49,16 @@ func (r *ArticleRepository) GetArticle(ctx context.Context, articleID uuid.UUID)
 		return nil, err
 	}
 
-	return toArticleModel(article), nil
+	return newArticleModel(
+		article.ID,
+		article.Title,
+		article.Description,
+		article.PublishedAt,
+		article.WebsiteUrl,
+		article.Content,
+		article.FeedID,
+		article.ExternalID,
+	), nil
 }
 
 func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
@@ -59,7 +69,16 @@ func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid
 
 	articleModels := make([]*model.Article, 0, len(articles))
 	for _, article := range articles {
-		articleModels = append(articleModels, toArticleModel(article))
+		articleModels = append(articleModels, newArticleModel(
+			article.ID,
+			article.Title,
+			article.Description,
+			article.PublishedAt,
+			article.WebsiteUrl,
+			article.Content,
+			article.FeedID,
+			article.ExternalID,
+		))
 	}
 	return articleModels, nil
 }
@@ -72,7 +91,16 @@ func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Articl
 
 	articleModels := make([]*model.Article, 0, len(articles))
 	for _, article := range articles {
-		articleModels = append(articleModels, toArticleModel(article))
+		articleModels = append(articleModels, newArticleModel(
+			article.ID,
+			article.Title,
+			article.Description,
+			article.PublishedAt,
+			article.WebsiteUrl,
+			article.Content,
+			article.FeedID,
+			article.ExternalID,
+		))
 	}
 	return articleModels, nil
 }
@@ -80,10 +108,10 @@ func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Articl
 func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Article) error {
 	params := generated.UpdateArticleParams{
 		Title:       article.Title,
-		Description: pgtype.Text{String: article.Description, Valid: article.Description != ""},
+		Description: stringPtrOrNil(article.Description),
 		PublishedAt: article.PublishedAt,
 		WebsiteUrl:  article.WebsiteURL,
-		Content:     pgtype.Text{String: article.Content, Valid: article.Content != ""},
+		Content:     stringPtrOrNil(article.Content),
 		FeedID:      article.FeedID,
 		ID:          article.ID,
 	}
@@ -94,14 +122,39 @@ func (r *ArticleRepository) DeleteArticle(ctx context.Context, articleID uuid.UU
 	return r.querier(ctx).DeleteArticle(ctx, articleID)
 }
 
-func toArticleModel(article generated.Article) *model.Article {
+func newArticleModel(
+	id uuid.UUID,
+	title string,
+	description *string,
+	publishedAt time.Time,
+	websiteURL string,
+	content *string,
+	feedID uuid.UUID,
+	externalID string,
+) *model.Article {
 	return &model.Article{
-		ID:          article.ID,
-		Title:       article.Title,
-		Description: article.Description.String,
-		PublishedAt: article.PublishedAt,
-		WebsiteURL:  article.WebsiteUrl,
-		Content:     article.Content.String,
-		FeedID:      article.FeedID,
+		ID:          id,
+		Title:       title,
+		Description: stringValue(description),
+		PublishedAt: publishedAt,
+		WebsiteURL:  websiteURL,
+		Content:     stringValue(content),
+		FeedID:      feedID,
+		ExternalID:  externalID,
 	}
+}
+
+// utils
+func stringPtrOrNil(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

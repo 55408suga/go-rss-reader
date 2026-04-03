@@ -8,17 +8,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Article struct {
 	ID          uuid.UUID
 	Title       string
-	Description pgtype.Text
+	Description *string
 	PublishedAt time.Time
 	WebsiteUrl  string
-	Content     pgtype.Text
+	Content     *string
 	FeedID      uuid.UUID
+	ExternalID  string
 }
 
 type Feed struct {
@@ -28,6 +28,6 @@ type Feed struct {
 	UpdatedAt    time.Time
 	FeedUrl      string
 	WebsiteUrl   string
-	Description  pgtype.Text
-	Language     pgtype.Text
+	Description  *string
+	Language     *string
 }

@@ -3,7 +3,10 @@ package gateway
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"rss_reader/internal/domain/model"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,6 +59,8 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 			publishedAt = item.UpdatedParsed.UTC()
 		}
 
+		externalID := resolveExternalID(item, publishedAt)
+
 		article, err := model.NewArticle(
 			item.Title,
 			item.Description,
@@ -63,6 +68,7 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 			item.Link,
 			publishedAt,
 			uuid.Nil, // FeedID will be set by the caller after feed is saved
+			externalID,
 		)
 		if err != nil {
 			return nil, nil, err
@@ -71,4 +77,23 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 	}
 
 	return feed, articles, nil
+}
+
+func resolveExternalID(item *gofeed.Item, publishedAt time.Time) string {
+	if guid := strings.TrimSpace(item.GUID); guid != "" {
+		return guid
+	}
+
+	if link := strings.TrimSpace(item.Link); link != "" {
+		return link
+	}
+
+	fallbackPublishedAt := publishedAt.UTC()
+	if item.PublishedParsed == nil && item.UpdatedParsed == nil {
+		fallbackPublishedAt = time.Time{}.UTC()
+	}
+
+	seed := strings.TrimSpace(item.Title) + "|" + fallbackPublishedAt.Format(time.RFC3339Nano)
+	sum := sha256.Sum256([]byte(seed))
+	return hex.EncodeToString(sum[:])
 }

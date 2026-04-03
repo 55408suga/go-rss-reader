@@ -16,7 +16,7 @@ FROM feeds
 ORDER BY registered_at DESC;
 
 -- name: GetArticles :many
-SELECT id, title, description, published_at, website_url, content, feed_id
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
 WHERE feed_id = $1
 ORDER BY published_at DESC;
@@ -37,18 +37,19 @@ WHERE id = $1;
 
 -- name: SaveArticle :exec
 INSERT INTO articles (
-    id, title, description, published_at, website_url, content, feed_id
+    id, title, description, published_at, website_url, content, feed_id, external_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-);
+    $1, $2, $3, $4, $5, $6, $7, $8
+)
+ON CONFLICT (feed_id, external_id) DO NOTHING;
 
 -- name: GetArticleByID :one
-SELECT id, title, description, published_at, website_url, content, feed_id
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
 WHERE id = $1 LIMIT 1;
 
 -- name: GetAllArticles :many
-SELECT id, title, description, published_at, website_url, content, feed_id
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
 ORDER BY published_at DESC;
 

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteArticle = `-- name: DeleteArticle :exec
@@ -34,7 +33,7 @@ func (q *Queries) DeleteFeed(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllArticles = `-- name: GetAllArticles :many
-SELECT id, title, description, published_at, website_url, content, feed_id
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
 ORDER BY published_at DESC
 `
@@ -45,7 +44,7 @@ func (q *Queries) GetAllArticles(ctx context.Context) ([]Article, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Article
+	items := []Article{}
 	for rows.Next() {
 		var i Article
 		if err := rows.Scan(
@@ -56,6 +55,7 @@ func (q *Queries) GetAllArticles(ctx context.Context) ([]Article, error) {
 			&i.WebsiteUrl,
 			&i.Content,
 			&i.FeedID,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func (q *Queries) GetAllFeeds(ctx context.Context) ([]Feed, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Feed
+	items := []Feed{}
 	for rows.Next() {
 		var i Feed
 		if err := rows.Scan(
@@ -103,7 +103,7 @@ func (q *Queries) GetAllFeeds(ctx context.Context) ([]Feed, error) {
 }
 
 const getArticleByID = `-- name: GetArticleByID :one
-SELECT id, title, description, published_at, website_url, content, feed_id
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
 WHERE id = $1 LIMIT 1
 `
@@ -119,12 +119,13 @@ func (q *Queries) GetArticleByID(ctx context.Context, id uuid.UUID) (Article, er
 		&i.WebsiteUrl,
 		&i.Content,
 		&i.FeedID,
+		&i.ExternalID,
 	)
 	return i, err
 }
 
 const getArticles = `-- name: GetArticles :many
-SELECT id, title, description, published_at, website_url, content, feed_id
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
 WHERE feed_id = $1
 ORDER BY published_at DESC
@@ -136,7 +137,7 @@ func (q *Queries) GetArticles(ctx context.Context, feedID uuid.UUID) ([]Article,
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Article
+	items := []Article{}
 	for rows.Next() {
 		var i Article
 		if err := rows.Scan(
@@ -147,6 +148,7 @@ func (q *Queries) GetArticles(ctx context.Context, feedID uuid.UUID) ([]Article,
 			&i.WebsiteUrl,
 			&i.Content,
 			&i.FeedID,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}
@@ -182,20 +184,22 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 
 const saveArticle = `-- name: SaveArticle :exec
 INSERT INTO articles (
-    id, title, description, published_at, website_url, content, feed_id
+    id, title, description, published_at, website_url, content, feed_id, external_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
+ON CONFLICT (feed_id, external_id) DO NOTHING
 `
 
 type SaveArticleParams struct {
 	ID          uuid.UUID
 	Title       string
-	Description pgtype.Text
+	Description *string
 	PublishedAt time.Time
 	WebsiteUrl  string
-	Content     pgtype.Text
+	Content     *string
 	FeedID      uuid.UUID
+	ExternalID  string
 }
 
 func (q *Queries) SaveArticle(ctx context.Context, arg SaveArticleParams) error {
@@ -207,6 +211,7 @@ func (q *Queries) SaveArticle(ctx context.Context, arg SaveArticleParams) error 
 		arg.WebsiteUrl,
 		arg.Content,
 		arg.FeedID,
+		arg.ExternalID,
 	)
 	return err
 }
@@ -225,8 +230,8 @@ type SaveFeedParams struct {
 	UpdatedAt   time.Time
 	FeedUrl     string
 	WebsiteUrl  string
-	Description pgtype.Text
-	Language    pgtype.Text
+	Description *string
+	Language    *string
 }
 
 func (q *Queries) SaveFeed(ctx context.Context, arg SaveFeedParams) error {
@@ -255,10 +260,10 @@ WHERE id = $7
 
 type UpdateArticleParams struct {
 	Title       string
-	Description pgtype.Text
+	Description *string
 	PublishedAt time.Time
 	WebsiteUrl  string
-	Content     pgtype.Text
+	Content     *string
 	FeedID      uuid.UUID
 	ID          uuid.UUID
 }
@@ -292,8 +297,8 @@ type UpdateFeedParams struct {
 	UpdatedAt   time.Time
 	FeedUrl     string
 	WebsiteUrl  string
-	Description pgtype.Text
-	Language    pgtype.Text
+	Description *string
+	Language    *string
 	ID          uuid.UUID
 }
 

@@ -7,7 +7,6 @@ import (
 	"rss_reader/internal/infra/persistence/postgres/generated"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,8 +35,8 @@ func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
 		UpdatedAt:   feed.UpdatedAt,
 		FeedUrl:     feed.FeedURL,
 		WebsiteUrl:  feed.WebsiteURL,
-		Description: pgtype.Text{String: feed.Description, Valid: feed.Description != ""},
-		Language:    pgtype.Text{String: feed.Language, Valid: feed.Language != ""},
+		Description: stringPtrOrNil(feed.Description),
+		Language:    stringPtrOrNil(feed.Language),
 	}
 	return r.querier(ctx).SaveFeed(ctx, params)
 }
@@ -54,8 +53,8 @@ func (r *FeedRepository) GetFeed(ctx context.Context, feedID uuid.UUID) (*model.
 		UpdatedAt:   feed.UpdatedAt,
 		FeedURL:     feed.FeedUrl,
 		WebsiteURL:  feed.WebsiteUrl,
-		Description: feed.Description.String,
-		Language:    feed.Language.String,
+		Description: stringValue(feed.Description),
+		Language:    stringValue(feed.Language),
 	}, nil
 }
 
@@ -74,8 +73,8 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 			UpdatedAt:   feed.UpdatedAt,
 			FeedURL:     feed.FeedUrl,
 			WebsiteURL:  feed.WebsiteUrl,
-			Description: feed.Description.String,
-			Language:    feed.Language.String,
+			Description: stringValue(feed.Description),
+			Language:    stringValue(feed.Language),
 		}
 		feedModels = append(feedModels, feedModel)
 	}
@@ -89,8 +88,8 @@ func (r *FeedRepository) UpdateFeed(ctx context.Context, feed *model.Feed) error
 		UpdatedAt:   feed.UpdatedAt,
 		FeedUrl:     feed.FeedURL,
 		WebsiteUrl:  feed.WebsiteURL,
-		Description: pgtype.Text{String: feed.Description, Valid: feed.Description != ""},
-		Language:    pgtype.Text{String: feed.Language, Valid: feed.Language != ""},
+		Description: stringPtrOrNil(feed.Description),
+		Language:    stringPtrOrNil(feed.Language),
 	}
 	return r.querier(ctx).UpdateFeed(ctx, params)
 }
