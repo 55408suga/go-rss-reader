@@ -59,7 +59,7 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 
 // GetFeedByID returns a feed by its ID.
 func (i *FeedInteractor) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error) {
-	return i.feedRepo.GetFeed(ctx, feedID)
+	return i.feedRepo.GetFeedByID(ctx, feedID)
 }
 
 // GetAllFeeds returns all feeds.
@@ -69,7 +69,7 @@ func (i *FeedInteractor) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 
 // RefreshFeed fetches latest feed metadata and articles for the given feed and saves them atomically.
 func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) error {
-	currentFeed, err := i.feedRepo.GetFeed(ctx, feedID)
+	currentFeed, err := i.feedRepo.GetFeedByID(ctx, feedID)
 	if err != nil {
 		return err
 	}

@@ -43,7 +43,7 @@ func (r *ArticleRepository) SaveArticle(ctx context.Context, article *model.Arti
 	return r.querier(ctx).SaveArticle(ctx, params)
 }
 
-func (r *ArticleRepository) GetArticle(ctx context.Context, articleID uuid.UUID) (*model.Article, error) {
+func (r *ArticleRepository) GetArticleByID(ctx context.Context, articleID uuid.UUID) (*model.Article, error) {
 	article, err := r.querier(ctx).GetArticleByID(ctx, articleID)
 	if err != nil {
 		return nil, err

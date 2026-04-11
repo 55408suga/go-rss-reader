@@ -41,7 +41,7 @@ func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
 	return r.querier(ctx).SaveFeed(ctx, params)
 }
 
-func (r *FeedRepository) GetFeed(ctx context.Context, feedID uuid.UUID) (*model.Feed, error) {
+func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error) {
 	feed, err := r.querier(ctx).GetFeedByID(ctx, feedID)
 	if err != nil {
 		return nil, err
