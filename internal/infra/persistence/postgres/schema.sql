@@ -21,15 +21,27 @@ CREATE TABLE articles (
     UNIQUE(feed_id, external_id)
 );
 
--- create table feed_fetch_status (
---     feed_id UUID primary key REFERENCES feeds(id) ON DELETE CASCADE NOT NULL,
---     last_fetched_at timestamp WITH time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
---     next_fetch_at timestamp WITH time zone,
---     status_code int NOT NULL,
---     error_message text,
---     last_modified timestamp with time zone,
---     fetch_interval_hours int NOT NULL DEFAULT 24,
---     failure_count int NOT NULL DEFAULT 0,
--- );
+create table feed_fetch_status (
+    feed_id UUID primary key REFERENCES feeds(id) ON DELETE CASCADE NOT NULL,
+    last_fetched_at timestamp WITH time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    next_fetch_at timestamp WITH time zone,
+    status_code int NOT NULL,
+    error_message text,
+    last_modified timestamp with time zone,
+    etag text,
+    fetch_interval_hours int NOT NULL DEFAULT 12,
+    failure_count int NOT NULL DEFAULT 0
+);
 
--- CREATE INDEX idx_articles_feed_id ON articles(feed_id);
+CREATE INDEX idx_feeds_registered_at_desc
+ON feeds (registered_at DESC);
+
+CREATE INDEX idx_articles_published_at_desc
+ON articles (published_at DESC);
+
+CREATE INDEX idx_articles_feed_id_published_at_desc
+ON articles (feed_id, published_at DESC);
+
+CREATE INDEX idx_feed_fetch_status_next_fetch_at
+ON feed_fetch_status (next_fetch_at)
+WHERE next_fetch_at IS NOT NULL;

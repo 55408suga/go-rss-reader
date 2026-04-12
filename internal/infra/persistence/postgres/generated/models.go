@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Article struct {
@@ -30,4 +31,16 @@ type Feed struct {
 	WebsiteUrl   string
 	Description  *string
 	Language     *string
+}
+
+type FeedFetchStatus struct {
+	FeedID             uuid.UUID
+	LastFetchedAt      time.Time
+	NextFetchAt        pgtype.Timestamptz
+	StatusCode         int32
+	ErrorMessage       *string
+	LastModified       pgtype.Timestamptz
+	Etag               *string
+	FetchIntervalHours int32
+	FailureCount       int32
 }
