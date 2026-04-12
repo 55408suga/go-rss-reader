@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"net/http"
 	"rss_reader/internal/domain/model"
 	"strings"
 	"time"
@@ -14,22 +15,37 @@ import (
 )
 
 type RSSGateway struct {
-	parser *gofeed.Parser
+	parser     *gofeed.Parser
+	httpClient http.Client
 }
 
 func NewRSSGateway() *RSSGateway {
 	return &RSSGateway{
-		parser: gofeed.NewParser(),
+		parser:     gofeed.NewParser(),
+		httpClient: *NewHTTPClient(),
 	}
 }
 
 // FetchFeedWithArticles fetches and parses an RSS feed URL, returning both
 // the feed metadata and all articles in a single HTTP request.
 // Article FeedIDs are set to uuid.Nil; callers must set them after feed is persisted.
-func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error) {
-	feedData, err := rg.parser.ParseURLWithContext(feedURL, ctx)
+func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+	resp, err := rg.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer resp.Body.Close()
+	// 後で詳細に分岐を詰める
+	if resp.StatusCode != 200 {
+		return nil, nil, nil, err
+	}
+	feedData, err := rg.parser.Parse(resp.Body)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	// Build model.Feed
@@ -46,7 +62,7 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 		updatedAt,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Build model.Article list
@@ -71,12 +87,19 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 			externalID,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		articles = append(articles, article)
 	}
 
-	return feed, articles, nil
+	// build fetch status
+	etag := toOptionalString(strings.TrimSpace(resp.Header.Get("ETag")))
+	lastModified := parseHTTPTime(strings.TrimSpace(resp.Header.Get("Last-Modified")))
+	feedCursor := &model.FeedCursor{
+		ETag:         etag,
+		LastModified: lastModified,
+	}
+	return feed, articles, feedCursor, nil
 }
 
 func resolveExternalID(item *gofeed.Item, publishedAt time.Time) string {
@@ -96,4 +119,26 @@ func resolveExternalID(item *gofeed.Item, publishedAt time.Time) string {
 	seed := strings.TrimSpace(item.Title) + "|" + fallbackPublishedAt.Format(time.RFC3339Nano)
 	sum := sha256.Sum256([]byte(seed))
 	return hex.EncodeToString(sum[:])
+}
+
+// 以下util後でまとめを検討
+func toOptionalString(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func parseHTTPTime(value string) *time.Time {
+	if value == "" {
+		return nil
+	}
+
+	parsed, err := http.ParseTime(value)
+	if err != nil {
+		return nil
+	}
+
+	utc := parsed.UTC()
+	return &utc
 }
