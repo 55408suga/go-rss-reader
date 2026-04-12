@@ -35,8 +35,8 @@ func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
 		UpdatedAt:   feed.UpdatedAt,
 		FeedUrl:     feed.FeedURL,
 		WebsiteUrl:  feed.WebsiteURL,
-		Description: stringPtrOrNil(feed.Description),
-		Language:    stringPtrOrNil(feed.Language),
+		Description: feed.Description,
+		Language:    feed.Language,
 	}
 	return r.querier(ctx).SaveFeed(ctx, params)
 }
@@ -53,8 +53,8 @@ func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 		UpdatedAt:   feed.UpdatedAt,
 		FeedURL:     feed.FeedUrl,
 		WebsiteURL:  feed.WebsiteUrl,
-		Description: stringValue(feed.Description),
-		Language:    stringValue(feed.Language),
+		Description: feed.Description,
+		Language:    feed.Language,
 	}, nil
 }
 
@@ -73,8 +73,8 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 			UpdatedAt:   feed.UpdatedAt,
 			FeedURL:     feed.FeedUrl,
 			WebsiteURL:  feed.WebsiteUrl,
-			Description: stringValue(feed.Description),
-			Language:    stringValue(feed.Language),
+			Description: feed.Description,
+			Language:    feed.Language,
 		}
 		feedModels = append(feedModels, feedModel)
 	}
@@ -88,8 +88,8 @@ func (r *FeedRepository) UpdateFeed(ctx context.Context, feed *model.Feed) error
 		UpdatedAt:   feed.UpdatedAt,
 		FeedUrl:     feed.FeedURL,
 		WebsiteUrl:  feed.WebsiteURL,
-		Description: stringPtrOrNil(feed.Description),
-		Language:    stringPtrOrNil(feed.Language),
+		Description: feed.Description,
+		Language:    feed.Language,
 	}
 	return r.querier(ctx).UpdateFeed(ctx, params)
 }

@@ -66,3 +66,32 @@ WHERE id = $7;
 -- name: DeleteArticle :exec
 DELETE FROM articles
 WHERE id = $1;
+
+-- name: SaveFeedFetchStatus :exec
+INSERT INTO feed_fetch_status (
+    feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
+ON CONFLICT (feed_id) DO UPDATE
+SET last_fetched_at = EXCLUDED.last_fetched_at,
+    next_fetch_at = EXCLUDED.next_fetch_at,
+    status_code = EXCLUDED.status_code,
+    error_message = EXCLUDED.error_message,
+    last_modified = EXCLUDED.last_modified,
+    etag = EXCLUDED.etag,
+    fetch_interval_hours = EXCLUDED.fetch_interval_hours,
+    failure_count = EXCLUDED.failure_count;
+
+-- name: GetFeedFetchStatusByFeedID :one
+SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
+FROM feed_fetch_status
+WHERE feed_id = $1
+LIMIT 1;
+
+-- name: GetDueFeedFetchStatuses :many
+SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
+FROM feed_fetch_status
+WHERE next_fetch_at <= $1
+ORDER BY next_fetch_at ASC
+LIMIT $2;

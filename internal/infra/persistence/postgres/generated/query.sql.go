@@ -160,6 +160,49 @@ func (q *Queries) GetArticles(ctx context.Context, feedID uuid.UUID) ([]Article,
 	return items, nil
 }
 
+const getDueFeedFetchStatuses = `-- name: GetDueFeedFetchStatuses :many
+SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
+FROM feed_fetch_status
+WHERE next_fetch_at <= $1
+ORDER BY next_fetch_at ASC
+LIMIT $2
+`
+
+type GetDueFeedFetchStatusesParams struct {
+	NextFetchAt time.Time
+	Limit       int32
+}
+
+func (q *Queries) GetDueFeedFetchStatuses(ctx context.Context, arg GetDueFeedFetchStatusesParams) ([]FeedFetchStatus, error) {
+	rows, err := q.db.Query(ctx, getDueFeedFetchStatuses, arg.NextFetchAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FeedFetchStatus{}
+	for rows.Next() {
+		var i FeedFetchStatus
+		if err := rows.Scan(
+			&i.FeedID,
+			&i.LastFetchedAt,
+			&i.NextFetchAt,
+			&i.StatusCode,
+			&i.ErrorMessage,
+			&i.LastModified,
+			&i.Etag,
+			&i.FetchIntervalHours,
+			&i.FailureCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFeedByID = `-- name: GetFeedByID :one
 SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
 FROM feeds
@@ -182,6 +225,30 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 	return i, err
 }
 
+const getFeedFetchStatusByFeedID = `-- name: GetFeedFetchStatusByFeedID :one
+SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
+FROM feed_fetch_status
+WHERE feed_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetFeedFetchStatusByFeedID(ctx context.Context, feedID uuid.UUID) (FeedFetchStatus, error) {
+	row := q.db.QueryRow(ctx, getFeedFetchStatusByFeedID, feedID)
+	var i FeedFetchStatus
+	err := row.Scan(
+		&i.FeedID,
+		&i.LastFetchedAt,
+		&i.NextFetchAt,
+		&i.StatusCode,
+		&i.ErrorMessage,
+		&i.LastModified,
+		&i.Etag,
+		&i.FetchIntervalHours,
+		&i.FailureCount,
+	)
+	return i, err
+}
+
 const saveArticle = `-- name: SaveArticle :exec
 INSERT INTO articles (
     id, title, description, published_at, website_url, content, feed_id, external_id
@@ -194,10 +261,10 @@ ON CONFLICT (feed_id, external_id) DO NOTHING
 type SaveArticleParams struct {
 	ID          uuid.UUID
 	Title       string
-	Description *string
+	Description string
 	PublishedAt time.Time
 	WebsiteUrl  string
-	Content     *string
+	Content     string
 	FeedID      uuid.UUID
 	ExternalID  string
 }
@@ -230,8 +297,8 @@ type SaveFeedParams struct {
 	UpdatedAt   time.Time
 	FeedUrl     string
 	WebsiteUrl  string
-	Description *string
-	Language    *string
+	Description string
+	Language    string
 }
 
 func (q *Queries) SaveFeed(ctx context.Context, arg SaveFeedParams) error {
@@ -243,6 +310,50 @@ func (q *Queries) SaveFeed(ctx context.Context, arg SaveFeedParams) error {
 		arg.WebsiteUrl,
 		arg.Description,
 		arg.Language,
+	)
+	return err
+}
+
+const saveFeedFetchStatus = `-- name: SaveFeedFetchStatus :exec
+INSERT INTO feed_fetch_status (
+    feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
+ON CONFLICT (feed_id) DO UPDATE
+SET last_fetched_at = EXCLUDED.last_fetched_at,
+    next_fetch_at = EXCLUDED.next_fetch_at,
+    status_code = EXCLUDED.status_code,
+    error_message = EXCLUDED.error_message,
+    last_modified = EXCLUDED.last_modified,
+    etag = EXCLUDED.etag,
+    fetch_interval_hours = EXCLUDED.fetch_interval_hours,
+    failure_count = EXCLUDED.failure_count
+`
+
+type SaveFeedFetchStatusParams struct {
+	FeedID             uuid.UUID
+	LastFetchedAt      time.Time
+	NextFetchAt        time.Time
+	StatusCode         int32
+	ErrorMessage       *string
+	LastModified       *time.Time
+	Etag               *string
+	FetchIntervalHours int32
+	FailureCount       int32
+}
+
+func (q *Queries) SaveFeedFetchStatus(ctx context.Context, arg SaveFeedFetchStatusParams) error {
+	_, err := q.db.Exec(ctx, saveFeedFetchStatus,
+		arg.FeedID,
+		arg.LastFetchedAt,
+		arg.NextFetchAt,
+		arg.StatusCode,
+		arg.ErrorMessage,
+		arg.LastModified,
+		arg.Etag,
+		arg.FetchIntervalHours,
+		arg.FailureCount,
 	)
 	return err
 }
@@ -260,10 +371,10 @@ WHERE id = $7
 
 type UpdateArticleParams struct {
 	Title       string
-	Description *string
+	Description string
 	PublishedAt time.Time
 	WebsiteUrl  string
-	Content     *string
+	Content     string
 	FeedID      uuid.UUID
 	ID          uuid.UUID
 }
@@ -297,8 +408,8 @@ type UpdateFeedParams struct {
 	UpdatedAt   time.Time
 	FeedUrl     string
 	WebsiteUrl  string
-	Description *string
-	Language    *string
+	Description string
+	Language    string
 	ID          uuid.UUID
 }
 

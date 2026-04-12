@@ -8,8 +8,8 @@ overrides:
           type: UUID
 sql:
   - engine: "postgresql"
-    queries: "internal/infra/persistence/postgres/query.sql"
-    schema: "internal/infra/persistence/postgres/schema.sql"
+    queries: "internal/infra/persistence/postgres/sql/query.sql"
+    schema: "internal/infra/persistence/postgres/sql/schema.sql"
     gen:
       go:
         package: "generated"
@@ -22,6 +22,12 @@ sql:
             go_type:
               import: "time"
               type: "Time"
+          - db_type: pg_catalog.timestamptz
+            nullable: true
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
           - db_type: text
             nullable: true
             go_type:

@@ -8,16 +8,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Article struct {
 	ID          uuid.UUID
 	Title       string
-	Description *string
+	Description string
 	PublishedAt time.Time
 	WebsiteUrl  string
-	Content     *string
+	Content     string
 	FeedID      uuid.UUID
 	ExternalID  string
 }
@@ -29,17 +28,17 @@ type Feed struct {
 	UpdatedAt    time.Time
 	FeedUrl      string
 	WebsiteUrl   string
-	Description  *string
-	Language     *string
+	Description  string
+	Language     string
 }
 
 type FeedFetchStatus struct {
 	FeedID             uuid.UUID
 	LastFetchedAt      time.Time
-	NextFetchAt        pgtype.Timestamptz
+	NextFetchAt        time.Time
 	StatusCode         int32
 	ErrorMessage       *string
-	LastModified       pgtype.Timestamptz
+	LastModified       *time.Time
 	Etag               *string
 	FetchIntervalHours int32
 	FailureCount       int32

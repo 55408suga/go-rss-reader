@@ -33,10 +33,10 @@ func (r *ArticleRepository) SaveArticle(ctx context.Context, article *model.Arti
 	params := generated.SaveArticleParams{
 		ID:          article.ID,
 		Title:       article.Title,
-		Description: stringPtrOrNil(article.Description),
+		Description: article.Description,
 		PublishedAt: article.PublishedAt,
 		WebsiteUrl:  article.WebsiteURL,
-		Content:     stringPtrOrNil(article.Content),
+		Content:     article.Content,
 		FeedID:      article.FeedID,
 		ExternalID:  article.ExternalID,
 	}
@@ -108,10 +108,10 @@ func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Articl
 func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Article) error {
 	params := generated.UpdateArticleParams{
 		Title:       article.Title,
-		Description: stringPtrOrNil(article.Description),
+		Description: article.Description,
 		PublishedAt: article.PublishedAt,
 		WebsiteUrl:  article.WebsiteURL,
-		Content:     stringPtrOrNil(article.Content),
+		Content:     article.Content,
 		FeedID:      article.FeedID,
 		ID:          article.ID,
 	}
@@ -125,36 +125,21 @@ func (r *ArticleRepository) DeleteArticle(ctx context.Context, articleID uuid.UU
 func newArticleModel(
 	id uuid.UUID,
 	title string,
-	description *string,
+	description string,
 	publishedAt time.Time,
 	websiteURL string,
-	content *string,
+	content string,
 	feedID uuid.UUID,
 	externalID string,
 ) *model.Article {
 	return &model.Article{
 		ID:          id,
 		Title:       title,
-		Description: stringValue(description),
+		Description: description,
 		PublishedAt: publishedAt,
 		WebsiteURL:  websiteURL,
-		Content:     stringValue(content),
+		Content:     content,
 		FeedID:      feedID,
 		ExternalID:  externalID,
 	}
-}
-
-// utils
-func stringPtrOrNil(value string) *string {
-	if value == "" {
-		return nil
-	}
-	return &value
-}
-
-func stringValue(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
 }
