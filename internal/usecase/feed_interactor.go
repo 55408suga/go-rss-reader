@@ -10,44 +10,59 @@ import (
 
 // FeedInteractor implements FeedUsecase interface.
 type FeedInteractor struct {
-	feedRepo    repository.FeedRepository
-	articleRepo repository.ArticleRepository
-	fetcher     RSSFetcher
-	txManager   TransactionManager
+	feedRepo       repository.FeedRepository
+	articleRepo    repository.ArticleRepository
+	feedStatusRepo repository.FetchStatusRepository
+	fetcher        RSSFetcher
+	txManager      TransactionManager
 }
 
 // NewFeedInteractor represents constructor of FeedInteractor.
 func NewFeedInteractor(
 	feedRepo repository.FeedRepository,
 	articleRepo repository.ArticleRepository,
+	feedStatusRepo repository.FetchStatusRepository,
 	fetcher RSSFetcher,
 	txManager TransactionManager,
 ) *FeedInteractor {
 	return &FeedInteractor{
-		feedRepo:    feedRepo,
-		articleRepo: articleRepo,
-		fetcher:     fetcher,
-		txManager:   txManager,
+		feedRepo:       feedRepo,
+		articleRepo:    articleRepo,
+		feedStatusRepo: feedStatusRepo,
+		fetcher:        fetcher,
+		txManager:      txManager,
 	}
 }
 
-// RegisterFeed fetches a feed with articles from the given URL and saves them atomically.
+// RegisterFeed fetches a feed and its articles, then saves feed/articles/fetch-status atomically.
 func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error) {
-	feed, articles, err := i.fetcher.FetchFeedWithArticles(ctx, feedURL)
+	feed, articles, feedCursor, err := i.fetcher.FetchFeedWithArticles(ctx, feedURL)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	cursor := model.FeedCursor{}
+	if feedCursor != nil {
+		cursor = *feedCursor
+	}
+	fetchStatus := model.NewFetchStatus(feed.ID, cursor)
 
 	err = i.txManager.WithTransaction(ctx, func(txCtx context.Context) error {
 		if err := i.feedRepo.SaveFeed(txCtx, feed); err != nil {
 			return err
 		}
+
 		for _, article := range articles {
 			article.FeedID = feed.ID
 			if err := i.articleRepo.SaveArticle(txCtx, article); err != nil {
 				return err
 			}
 		}
+
+		if err := i.feedStatusRepo.SaveFetchStatus(txCtx, fetchStatus); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -74,7 +89,7 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 		return err
 	}
 
-	feed, articles, err := i.fetcher.FetchFeedWithArticles(ctx, currentFeed.FeedURL)
+	feed, articles, _, err := i.fetcher.FetchFeedWithArticles(ctx, currentFeed.FeedURL)
 	if err != nil {
 		return err
 	}

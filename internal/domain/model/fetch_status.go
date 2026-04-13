@@ -20,3 +20,45 @@ type FetchStatus struct {
 	FetchIntervalHours int `json:"fetch_interval_hours"`
 	FailureCount       int `json:"failure_count"`
 }
+
+const (
+	defaultFetchIntervalHours = 24
+	defaultFetchStatusCode    = 200
+)
+
+func NewFetchStatusDefault(
+	feedID uuid.UUID,
+	lastFetchedAt time.Time,
+	nextFetchAt time.Time,
+	statusCode int,
+	errorMessage *string,
+	feedCursor FeedCursor,
+	fetchIntervalHours int,
+	failureCount int,
+) *FetchStatus {
+	return &FetchStatus{
+		FeedID:             feedID,
+		LastFetchedAt:      lastFetchedAt,
+		NextFetchAt:        nextFetchAt,
+		StatusCode:         statusCode,
+		ErrorMessage:       errorMessage,
+		FeedCursor:         feedCursor,
+		FetchIntervalHours: fetchIntervalHours,
+		FailureCount:       failureCount,
+	}
+}
+
+func NewFetchStatus(feedID uuid.UUID, feedCursor FeedCursor) *FetchStatus {
+	lastFetchedAt := time.Now().UTC()
+
+	return NewFetchStatusDefault(
+		feedID,
+		lastFetchedAt,
+		lastFetchedAt.Add(time.Duration(defaultFetchIntervalHours)*time.Hour),
+		defaultFetchStatusCode,
+		nil,
+		feedCursor,
+		defaultFetchIntervalHours,
+		0,
+	)
+}
