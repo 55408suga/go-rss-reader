@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// NewHTTPClient creates an HTTP client tuned for RSS fetch workloads.
 func NewHTTPClient() *http.Client {
 	return &http.Client{
 		Timeout: 10 * time.Second,

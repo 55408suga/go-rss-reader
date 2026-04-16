@@ -5,8 +5,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
+	applogger "rss_reader/internal/infra/logger"
 	"strings"
 	"time"
 
@@ -14,38 +18,85 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
+// RSSGateway fetches and parses remote RSS feeds.
 type RSSGateway struct {
 	parser     *gofeed.Parser
-	httpClient http.Client
+	httpClient *http.Client
+	logger     *slog.Logger
 }
 
-func NewRSSGateway() *RSSGateway {
+// NewRSSGateway constructs a gateway for fetching and parsing RSS feeds.
+func NewRSSGateway(httpClient *http.Client, logger *slog.Logger) *RSSGateway {
+	if httpClient == nil {
+		httpClient = NewHTTPClient()
+	}
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &RSSGateway{
 		parser:     gofeed.NewParser(),
-		httpClient: *NewHTTPClient(),
+		httpClient: httpClient,
+		logger:     logger,
 	}
 }
 
 // FetchFeedWithArticles fetches and parses an RSS feed URL, returning both
 // the feed metadata and all articles in a single HTTP request.
 // Article FeedIDs are set to uuid.Nil; callers must set them after feed is persisted.
-func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
+func (rg *RSSGateway) FetchFeedWithArticles(
+	ctx context.Context,
+	feedURL string,
+) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
+	const op = "RSSGateway.FetchFeedWithArticles"
+	startedAt := time.Now()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, apperror.NewInvalidArgument(op, "invalid feed url", err)
 	}
 	resp, err := rg.httpClient.Do(req)
 	if err != nil {
-		return nil, nil, nil, err
+		applogger.WithContext(ctx, rg.logger).WarnContext(ctx,
+			"rss fetch failed",
+			"feed_url", feedURL,
+			"error", err,
+		)
+		return nil, nil, nil, apperror.NewExternalUnavailable(op, "failed to fetch rss feed", err)
 	}
-	defer resp.Body.Close()
-	// 後で詳細に分岐を詰める
-	if resp.StatusCode != 200 {
-		return nil, nil, nil, err
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			applogger.WithContext(ctx, rg.logger).WarnContext(ctx,
+				"failed to close rss response body",
+				"feed_url", feedURL,
+				"error", closeErr,
+			)
+		}
+	}()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		wrapped := apperror.NewExternalUnavailable(
+			op,
+			fmt.Sprintf("rss feed returned status %d", resp.StatusCode),
+			nil,
+		)
+		applogger.WithContext(ctx, rg.logger).WarnContext(ctx,
+			"rss fetch returned non-success status",
+			"feed_url", feedURL,
+			"status", resp.StatusCode,
+			"duration_ms", time.Since(startedAt).Milliseconds(),
+		)
+		return nil, nil, nil, wrapped
 	}
+
 	feedData, err := rg.parser.Parse(resp.Body)
 	if err != nil {
-		return nil, nil, nil, err
+		applogger.WithContext(ctx, rg.logger).WarnContext(ctx,
+			"rss parse failed",
+			"feed_url", feedURL,
+			"error", err,
+		)
+		return nil, nil, nil, apperror.NewExternalUnavailable(op, "failed to parse rss feed", err)
 	}
 
 	// Build model.Feed
@@ -62,7 +113,7 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 		updatedAt,
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, apperror.NewInternal(op, "failed to build feed model", err)
 	}
 
 	// Build model.Article list
@@ -87,7 +138,7 @@ func (rg *RSSGateway) FetchFeedWithArticles(ctx context.Context, feedURL string)
 			externalID,
 		)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, apperror.NewInternal(op, "failed to build article model", err)
 		}
 		articles = append(articles, article)
 	}

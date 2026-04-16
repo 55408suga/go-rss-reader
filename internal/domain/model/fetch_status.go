@@ -6,10 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// FeedCursor stores HTTP cache headers used for conditional feed fetch.
 type FeedCursor struct {
 	ETag         *string
 	LastModified *time.Time
 }
+
+// FetchStatus tracks fetch timing and health for a feed.
 type FetchStatus struct {
 	FeedID             uuid.UUID `json:"feed_id"`
 	LastFetchedAt      time.Time `json:"last_fetched_at"`
@@ -26,6 +29,7 @@ const (
 	defaultFetchStatusCode    = 200
 )
 
+// NewFetchStatusDefault creates FetchStatus with explicit values.
 func NewFetchStatusDefault(
 	feedID uuid.UUID,
 	lastFetchedAt time.Time,
@@ -48,6 +52,7 @@ func NewFetchStatusDefault(
 	}
 }
 
+// NewFetchStatus creates FetchStatus with default scheduling values.
 func NewFetchStatus(feedID uuid.UUID, feedCursor FeedCursor) *FetchStatus {
 	lastFetchedAt := time.Now().UTC()
 

@@ -20,7 +20,12 @@ type Article struct {
 }
 
 // NewArticle creates a new article instance with generating uuidv7
-func NewArticle(title, description, content, websiteURL string, publishedAt time.Time, feedID uuid.UUID, externalID string) (*Article, error) {
+func NewArticle(
+	title, description, content, websiteURL string,
+	publishedAt time.Time,
+	feedID uuid.UUID,
+	externalID string,
+) (*Article, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err

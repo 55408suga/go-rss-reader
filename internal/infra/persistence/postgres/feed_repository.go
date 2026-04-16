@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"log/slog"
 
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/infra/persistence/postgres/generated"
@@ -10,13 +11,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// FeedRepository is a PostgreSQL-backed feed repository implementation.
 type FeedRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *slog.Logger
 }
 
-func NewFeedRepository(pool *pgxpool.Pool) *FeedRepository {
+// NewFeedRepository creates a FeedRepository.
+func NewFeedRepository(pool *pgxpool.Pool, logger *slog.Logger) *FeedRepository {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &FeedRepository{
-		pool: pool,
+		pool:   pool,
+		logger: logger,
 	}
 }
 
@@ -28,7 +37,10 @@ func (r *FeedRepository) querier(ctx context.Context) *generated.Queries {
 	return generated.New(r.pool)
 }
 
+// SaveFeed persists a feed.
 func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
+	const op = "FeedRepository.SaveFeed"
+
 	params := generated.SaveFeedParams{
 		ID:          feed.ID,
 		Title:       feed.Title,
@@ -38,13 +50,21 @@ func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
 		Description: feed.Description,
 		Language:    feed.Language,
 	}
-	return r.querier(ctx).SaveFeed(ctx, params)
+	err := r.querier(ctx).SaveFeed(ctx, params)
+	if err != nil {
+		return wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return nil
 }
 
+// GetFeedByID retrieves a feed by ID.
 func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error) {
+	const op = "FeedRepository.GetFeedByID"
+
 	feed, err := r.querier(ctx).GetFeedByID(ctx, feedID)
 	if err != nil {
-		return nil, err
+		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	return &model.Feed{
@@ -58,10 +78,13 @@ func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	}, nil
 }
 
+// GetAllFeeds retrieves all feeds ordered by registration date.
 func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error) {
+	const op = "FeedRepository.GetAllFeeds"
+
 	feeds, err := r.querier(ctx).GetAllFeeds(ctx)
 	if err != nil {
-		return nil, err
+		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	// convert generated.Feed to model.Feed
@@ -81,7 +104,10 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 	return feedModels, nil
 }
 
+// UpdateFeed updates an existing feed.
 func (r *FeedRepository) UpdateFeed(ctx context.Context, feed *model.Feed) error {
+	const op = "FeedRepository.UpdateFeed"
+
 	params := generated.UpdateFeedParams{
 		ID:          feed.ID,
 		Title:       feed.Title,
@@ -91,9 +117,22 @@ func (r *FeedRepository) UpdateFeed(ctx context.Context, feed *model.Feed) error
 		Description: feed.Description,
 		Language:    feed.Language,
 	}
-	return r.querier(ctx).UpdateFeed(ctx, params)
+	err := r.querier(ctx).UpdateFeed(ctx, params)
+	if err != nil {
+		return wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return nil
 }
 
+// DeleteFeed removes a feed by ID.
 func (r *FeedRepository) DeleteFeed(ctx context.Context, feedID uuid.UUID) error {
-	return r.querier(ctx).DeleteFeed(ctx, feedID)
+	const op = "FeedRepository.DeleteFeed"
+
+	err := r.querier(ctx).DeleteFeed(ctx, feedID)
+	if err != nil {
+		return wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return nil
 }

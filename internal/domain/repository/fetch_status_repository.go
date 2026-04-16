@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// FetchStatusRepository defines persistence operations for fetch status records.
 type FetchStatusRepository interface {
 	SaveFetchStatus(ctx context.Context, status *model.FetchStatus) error
 	GetFetchStatusByFeedID(ctx context.Context, feedID uuid.UUID) (*model.FetchStatus, error)

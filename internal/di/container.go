@@ -1,7 +1,10 @@
+// Package di wires application dependencies.
 package di
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"rss_reader/internal/handler"
 	"rss_reader/internal/infra/config"
 	"rss_reader/internal/infra/gateway"
@@ -9,49 +12,51 @@ import (
 	"rss_reader/internal/usecase"
 )
 
+// ApplicationComponents holds fully wired application entry-point dependencies.
 type ApplicationComponents struct {
 	FeedHandler    handler.FeedHandler
 	ArticleHandler handler.ArticleHandler
 	close          func() error
 }
 
-func NewApplicationComponents() *ApplicationComponents {
+// NewApplicationComponents wires application dependencies.
+func NewApplicationComponents(cfg *config.Config, logger *slog.Logger) (*ApplicationComponents, error) {
 	ctx := context.Background()
-	// ── 1. Config ──
-	config := config.NewConfig()
 
-	// ── 2. DB ──
-	db, err := postgres.NewDB(ctx, config.DatabaseURL)
-	if err != nil {
-		panic(err)
+	if cfg == nil {
+		cfg = config.NewConfig()
+	}
+	if logger == nil {
+		logger = slog.Default()
 	}
 
-	// ── 3. Repository ──
-	feedRepo := postgres.NewFeedRepository(db)
-	articleRepo := postgres.NewArticleRepository(db)
-	feedStatusRepo := postgres.NewFetchStatusRepository(db)
+	db, err := postgres.NewDB(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("database initialization failed: %w", err)
+	}
 
-	// ── 4. Gateway ──
-	rssGateway := gateway.NewRSSGateway()
+	feedRepo := postgres.NewFeedRepository(db, logger)
+	articleRepo := postgres.NewArticleRepository(db, logger)
+	feedStatusRepo := postgres.NewFetchStatusRepository(db, logger)
 
-	// ── 5. Transaction Manager ──
-	txManager := postgres.NewPgTransactionManager(db)
+	rssGateway := gateway.NewRSSGateway(gateway.NewHTTPClient(), logger)
 
-	// ── 6. Usecase ──
-	feedUC := usecase.NewFeedInteractor(feedRepo, articleRepo, feedStatusRepo, rssGateway, txManager)
-	articleUC := usecase.NewArticleInteractor(articleRepo)
+	txManager := postgres.NewPgTransactionManager(db, logger)
 
-	// ── 7. Handler ──
-	feedHandler := handler.NewFeedHandler(feedUC)
-	articleHandler := handler.NewArticleHandler(articleUC)
+	feedUC := usecase.NewFeedInteractor(feedRepo, articleRepo, feedStatusRepo, rssGateway, txManager, logger)
+	articleUC := usecase.NewArticleInteractor(articleRepo, logger)
+
+	feedHandler := handler.NewFeedHandler(feedUC, logger)
+	articleHandler := handler.NewArticleHandler(articleUC, logger)
 
 	return &ApplicationComponents{
 		FeedHandler:    *feedHandler,
 		ArticleHandler: *articleHandler,
 		close:          func() error { db.Close(); return nil },
-	}
+	}, nil
 }
 
+// Close releases resources held by components.
 func (ac *ApplicationComponents) Close() error {
 	if ac.close != nil {
 		return ac.close()

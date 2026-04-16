@@ -1,3 +1,4 @@
+// Package router registers HTTP routes.
 package router
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/labstack/echo/v5"
 )
 
+// SetupRoutes registers API routes.
 func SetupRoutes(e *echo.Echo, components *di.ApplicationComponents) {
 	api := e.Group("/api")
 	v1 := api.Group("/v1")

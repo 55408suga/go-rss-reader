@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"rss_reader/internal/domain/model"
@@ -11,13 +12,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// ArticleRepository is a PostgreSQL-backed article repository implementation.
 type ArticleRepository struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *slog.Logger
 }
 
-func NewArticleRepository(pool *pgxpool.Pool) *ArticleRepository {
+// NewArticleRepository creates an ArticleRepository.
+func NewArticleRepository(pool *pgxpool.Pool, logger *slog.Logger) *ArticleRepository {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
 	return &ArticleRepository{
-		pool: pool,
+		pool:   pool,
+		logger: logger,
 	}
 }
 
@@ -29,7 +38,10 @@ func (r *ArticleRepository) querier(ctx context.Context) *generated.Queries {
 	return generated.New(r.pool)
 }
 
+// SaveArticle persists an article.
 func (r *ArticleRepository) SaveArticle(ctx context.Context, article *model.Article) error {
+	const op = "ArticleRepository.SaveArticle"
+
 	params := generated.SaveArticleParams{
 		ID:          article.ID,
 		Title:       article.Title,
@@ -40,13 +52,21 @@ func (r *ArticleRepository) SaveArticle(ctx context.Context, article *model.Arti
 		FeedID:      article.FeedID,
 		ExternalID:  article.ExternalID,
 	}
-	return r.querier(ctx).SaveArticle(ctx, params)
+	err := r.querier(ctx).SaveArticle(ctx, params)
+	if err != nil {
+		return wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return nil
 }
 
+// GetArticleByID retrieves an article by ID.
 func (r *ArticleRepository) GetArticleByID(ctx context.Context, articleID uuid.UUID) (*model.Article, error) {
+	const op = "ArticleRepository.GetArticleByID"
+
 	article, err := r.querier(ctx).GetArticleByID(ctx, articleID)
 	if err != nil {
-		return nil, err
+		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	return newArticleModel(
@@ -61,10 +81,13 @@ func (r *ArticleRepository) GetArticleByID(ctx context.Context, articleID uuid.U
 	), nil
 }
 
+// GetArticlesByFeedID retrieves articles for a specific feed.
 func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
+	const op = "ArticleRepository.GetArticlesByFeedID"
+
 	articles, err := r.querier(ctx).GetArticles(ctx, feedID)
 	if err != nil {
-		return nil, err
+		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	articleModels := make([]*model.Article, 0, len(articles))
@@ -83,10 +106,13 @@ func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid
 	return articleModels, nil
 }
 
+// GetAllArticles retrieves all articles ordered by publish time.
 func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Article, error) {
+	const op = "ArticleRepository.GetAllArticles"
+
 	articles, err := r.querier(ctx).GetAllArticles(ctx)
 	if err != nil {
-		return nil, err
+		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	articleModels := make([]*model.Article, 0, len(articles))
@@ -105,7 +131,10 @@ func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Articl
 	return articleModels, nil
 }
 
+// UpdateArticle updates an existing article.
 func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Article) error {
+	const op = "ArticleRepository.UpdateArticle"
+
 	params := generated.UpdateArticleParams{
 		Title:       article.Title,
 		Description: article.Description,
@@ -115,11 +144,24 @@ func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Ar
 		FeedID:      article.FeedID,
 		ID:          article.ID,
 	}
-	return r.querier(ctx).UpdateArticle(ctx, params)
+	err := r.querier(ctx).UpdateArticle(ctx, params)
+	if err != nil {
+		return wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return nil
 }
 
+// DeleteArticle removes an article by ID.
 func (r *ArticleRepository) DeleteArticle(ctx context.Context, articleID uuid.UUID) error {
-	return r.querier(ctx).DeleteArticle(ctx, articleID)
+	const op = "ArticleRepository.DeleteArticle"
+
+	err := r.querier(ctx).DeleteArticle(ctx, articleID)
+	if err != nil {
+		return wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return nil
 }
 
 func newArticleModel(
