@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/infra/logger"
+	applogger "rss_reader/internal/applog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,6 +22,7 @@ func classifyDBError(err error, op string) *apperror.AppError {
 
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
+		// 23505 is the PostgreSQL error code for unique_violation, which indicates a conflict due to duplicate keys
 		if pgErr.Code == "23505" {
 			return apperror.NewConflict(op, "resource already exists", err)
 		}

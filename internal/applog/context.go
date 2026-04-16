@@ -1,5 +1,5 @@
-// Package logger provides slog initialization and context helpers.
-package logger
+// Package applog provides context helpers for correlated structured logging.
+package applog
 
 import (
 	"context"

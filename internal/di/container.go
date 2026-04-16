@@ -43,8 +43,8 @@ func NewApplicationComponents(cfg *config.Config, logger *slog.Logger) (*Applica
 
 	txManager := postgres.NewPgTransactionManager(db, logger)
 
-	feedUC := usecase.NewFeedInteractor(feedRepo, articleRepo, feedStatusRepo, rssGateway, txManager, logger)
-	articleUC := usecase.NewArticleInteractor(articleRepo, logger)
+	feedUC := usecase.NewFeedInteractor(feedRepo, articleRepo, feedStatusRepo, rssGateway, txManager)
+	articleUC := usecase.NewArticleInteractor(articleRepo)
 
 	feedHandler := handler.NewFeedHandler(feedUC, logger)
 	articleHandler := handler.NewArticleHandler(articleUC, logger)

@@ -12,5 +12,5 @@ import (
 type FetchStatusRepository interface {
 	SaveFetchStatus(ctx context.Context, status *model.FetchStatus) error
 	GetFetchStatusByFeedID(ctx context.Context, feedID uuid.UUID) (*model.FetchStatus, error)
-	GetDueFetchStatuses(ctx context.Context, now time.Time, limit int32) ([]*model.FetchStatus, error)
+	GetDueFetchStatuses(ctx context.Context, now time.Time, limit int) ([]*model.FetchStatus, error)
 }

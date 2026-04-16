@@ -2,11 +2,9 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
-	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/infra/persistence/postgres/generated"
 
@@ -41,50 +39,24 @@ func (r *FetchStatusRepository) querier(ctx context.Context) *generated.Queries 
 func (r *FetchStatusRepository) SaveFetchStatus(ctx context.Context, status *model.FetchStatus) error {
 	const op = "FetchStatusRepository.SaveFetchStatus"
 
-	statusCode, err := safeIntToInt32(status.StatusCode, "status_code")
-	if err != nil {
-		return apperror.NewInternal(op, "status code is out of range", err)
-	}
-
-	fetchIntervalHours, err := safeIntToInt32(status.FetchIntervalHours, "fetch_interval_hours")
-	if err != nil {
-		return apperror.NewInternal(op, "fetch interval is out of range", err)
-	}
-
-	failureCount, err := safeIntToInt32(status.FailureCount, "failure_count")
-	if err != nil {
-		return apperror.NewInternal(op, "failure count is out of range", err)
-	}
-
 	params := generated.SaveFeedFetchStatusParams{
 		FeedID:             status.FeedID,
 		LastFetchedAt:      status.LastFetchedAt,
 		NextFetchAt:        status.NextFetchAt,
-		StatusCode:         statusCode,
+		StatusCode:         status.StatusCode,
 		ErrorMessage:       status.ErrorMessage,
 		LastModified:       status.FeedCursor.LastModified,
 		Etag:               status.FeedCursor.ETag,
-		FetchIntervalHours: fetchIntervalHours,
-		FailureCount:       failureCount,
+		FetchIntervalHours: status.FetchIntervalHours,
+		FailureCount:       status.FailureCount,
 	}
 
-	err = r.querier(ctx).SaveFeedFetchStatus(ctx, params)
+	err := r.querier(ctx).SaveFeedFetchStatus(ctx, params)
 	if err != nil {
 		return wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	return nil
-}
-
-func safeIntToInt32(value int, fieldName string) (int32, error) {
-	const maxInt32 = int(^uint32(0) >> 1)
-	const minInt32 = -maxInt32 - 1
-
-	if value > maxInt32 || value < minInt32 {
-		return 0, fmt.Errorf("%s out of int32 range: %d", fieldName, value)
-	}
-
-	return int32(value), nil
 }
 
 // GetFetchStatusByFeedID retrieves fetch status for a feed.
@@ -106,13 +78,13 @@ func (r *FetchStatusRepository) GetFetchStatusByFeedID(
 func (r *FetchStatusRepository) GetDueFetchStatuses(
 	ctx context.Context,
 	now time.Time,
-	limit int32,
+	limit int,
 ) ([]*model.FetchStatus, error) {
 	const op = "FetchStatusRepository.GetDueFetchStatuses"
 
 	rows, err := r.querier(ctx).GetDueFeedFetchStatuses(ctx, generated.GetDueFeedFetchStatusesParams{
 		NextFetchAt: now,
-		Limit:       limit,
+		Column2:     limit,
 	})
 	if err != nil {
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
@@ -130,13 +102,13 @@ func toFetchStatusModel(status generated.FeedFetchStatus) *model.FetchStatus {
 		FeedID:        status.FeedID,
 		LastFetchedAt: status.LastFetchedAt,
 		NextFetchAt:   status.NextFetchAt,
-		StatusCode:    int(status.StatusCode),
+		StatusCode:    status.StatusCode,
 		ErrorMessage:  status.ErrorMessage,
 		FeedCursor: model.FeedCursor{
 			LastModified: status.LastModified,
 			ETag:         status.Etag,
 		},
-		FetchIntervalHours: int(status.FetchIntervalHours),
-		FailureCount:       int(status.FailureCount),
+		FetchIntervalHours: status.FetchIntervalHours,
+		FailureCount:       status.FailureCount,
 	}
 }

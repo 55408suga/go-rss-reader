@@ -36,10 +36,10 @@ type FeedFetchStatus struct {
 	FeedID             uuid.UUID
 	LastFetchedAt      time.Time
 	NextFetchAt        time.Time
-	StatusCode         int32
+	StatusCode         int
 	ErrorMessage       *string
 	LastModified       *time.Time
 	Etag               *string
-	FetchIntervalHours int32
-	FailureCount       int32
+	FetchIntervalHours int
+	FailureCount       int
 }

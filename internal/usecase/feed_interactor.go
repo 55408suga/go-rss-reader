@@ -2,11 +2,9 @@ package usecase
 
 import (
 	"context"
-	"log/slog"
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/domain/repository"
-	applogger "rss_reader/internal/infra/logger"
 
 	"github.com/google/uuid"
 )
@@ -18,7 +16,6 @@ type FeedInteractor struct {
 	feedStatusRepo repository.FetchStatusRepository
 	fetcher        RSSFetcher
 	txManager      TransactionManager
-	logger         *slog.Logger
 }
 
 // NewFeedInteractor represents constructor of FeedInteractor.
@@ -28,19 +25,13 @@ func NewFeedInteractor(
 	feedStatusRepo repository.FetchStatusRepository,
 	fetcher RSSFetcher,
 	txManager TransactionManager,
-	logger *slog.Logger,
 ) *FeedInteractor {
-	if logger == nil {
-		logger = slog.Default()
-	}
-
 	return &FeedInteractor{
 		feedRepo:       feedRepo,
 		articleRepo:    articleRepo,
 		feedStatusRepo: feedStatusRepo,
 		fetcher:        fetcher,
 		txManager:      txManager,
-		logger:         logger,
 	}
 }
 
@@ -50,11 +41,6 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 
 	feed, articles, feedCursor, err := i.fetcher.FetchFeedWithArticles(ctx, feedURL)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-			"register feed failed while fetching external feed",
-			"feed_url", feedURL,
-			"error", err,
-		)
 		return nil, nil, apperror.Wrap(err, op)
 	}
 
@@ -83,11 +69,6 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 		return nil
 	})
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-			"register feed failed while saving data",
-			"feed_url", feedURL,
-			"error", err,
-		)
 		return nil, nil, apperror.Wrap(err, op)
 	}
 
@@ -100,11 +81,6 @@ func (i *FeedInteractor) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 
 	feed, err := i.feedRepo.GetFeedByID(ctx, feedID)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).WarnContext(ctx,
-			"get feed by id failed",
-			"feed_id", feedID,
-			"error", err,
-		)
 		return nil, apperror.Wrap(err, op)
 	}
 
@@ -117,10 +93,6 @@ func (i *FeedInteractor) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 
 	feeds, err := i.feedRepo.GetAllFeeds(ctx)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-			"get all feeds failed",
-			"error", err,
-		)
 		return nil, apperror.Wrap(err, op)
 	}
 
@@ -133,22 +105,11 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 
 	currentFeed, err := i.feedRepo.GetFeedByID(ctx, feedID)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).WarnContext(ctx,
-			"refresh feed failed while loading current feed",
-			"feed_id", feedID,
-			"error", err,
-		)
 		return apperror.Wrap(err, op+".GetFeedByID")
 	}
 
 	feed, articles, _, err := i.fetcher.FetchFeedWithArticles(ctx, currentFeed.FeedURL)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-			"refresh feed failed while fetching external feed",
-			"feed_id", feedID,
-			"feed_url", currentFeed.FeedURL,
-			"error", err,
-		)
 		return apperror.Wrap(err, op+".FetchFeedWithArticles")
 	}
 	feed.ID = currentFeed.ID
@@ -166,11 +127,6 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 		return nil
 	})
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-			"refresh feed failed while saving data",
-			"feed_id", feedID,
-			"error", err,
-		)
 		return apperror.Wrap(err, op)
 	}
 
@@ -183,19 +139,10 @@ func (i *FeedInteractor) RefreshAllFeeds(ctx context.Context) error {
 
 	feeds, err := i.feedRepo.GetAllFeeds(ctx)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-			"refresh all feeds failed while loading feeds",
-			"error", err,
-		)
 		return apperror.Wrap(err, op+".GetAllFeeds")
 	}
 	for _, feed := range feeds {
 		if err := i.RefreshFeed(ctx, feed.ID); err != nil {
-			applogger.WithContext(ctx, i.logger).ErrorContext(ctx,
-				"refresh all feeds failed while refreshing a feed",
-				"feed_id", feed.ID,
-				"error", err,
-			)
 			return apperror.Wrap(err, op)
 		}
 	}
@@ -208,11 +155,6 @@ func (i *FeedInteractor) DeleteFeed(ctx context.Context, feedID uuid.UUID) error
 
 	err := i.feedRepo.DeleteFeed(ctx, feedID)
 	if err != nil {
-		applogger.WithContext(ctx, i.logger).WarnContext(ctx,
-			"delete feed failed",
-			"feed_id", feedID,
-			"error", err,
-		)
 		return apperror.Wrap(err, op)
 	}
 

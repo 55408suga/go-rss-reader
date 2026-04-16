@@ -4,8 +4,8 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/infra/logger"
 	"rss_reader/internal/usecase"
 
 	"github.com/google/uuid"

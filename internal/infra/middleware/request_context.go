@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"rss_reader/internal/infra/logger"
+	"rss_reader/internal/applog"
 
 	"github.com/labstack/echo/v5"
 )
@@ -13,7 +13,7 @@ func RequestIDContext() echo.MiddlewareFunc {
 			requestID := requestIDFromEcho(c)
 			if requestID != "" {
 				req := c.Request()
-				ctx := logger.WithRequestID(req.Context(), requestID)
+				ctx := applog.WithRequestID(req.Context(), requestID)
 				c.SetRequest(req.WithContext(ctx))
 			}
 			return next(c)

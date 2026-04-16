@@ -9,8 +9,8 @@ import (
 	"log/slog"
 	"net/http"
 	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/domain/model"
-	applogger "rss_reader/internal/infra/logger"
 	"strings"
 	"time"
 
@@ -55,6 +55,7 @@ func (rg *RSSGateway) FetchFeedWithArticles(
 	if err != nil {
 		return nil, nil, nil, apperror.NewInvalidArgument(op, "invalid feed url", err)
 	}
+	// send get request to fetch rss feed
 	resp, err := rg.httpClient.Do(req)
 	if err != nil {
 		applogger.WithContext(ctx, rg.logger).WarnContext(ctx,
@@ -73,7 +74,7 @@ func (rg *RSSGateway) FetchFeedWithArticles(
 			)
 		}
 	}()
-
+	// consider non-2xx status codes as errors, but log the response for debugging
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		wrapped := apperror.NewExternalUnavailable(
 			op,

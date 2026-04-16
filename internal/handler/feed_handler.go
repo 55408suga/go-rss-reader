@@ -4,9 +4,9 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
-	applogger "rss_reader/internal/infra/logger"
 	"rss_reader/internal/usecase"
 
 	"github.com/go-playground/validator/v10"

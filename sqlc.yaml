@@ -33,3 +33,6 @@ sql:
             go_type:
               type: "string"
               pointer: true
+          - db_type: pg_catalog.int4
+            go_type:
+              type: "int"

@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"log/slog"
-	"rss_reader/internal/infra/logger"
+	"rss_reader/internal/applog"
 
 	"github.com/labstack/echo/v5"
 	echomw "github.com/labstack/echo/v5/middleware"
@@ -22,12 +22,12 @@ func RequestLogger(baseLogger *slog.Logger) echo.MiddlewareFunc {
 		LogRequestID: true,
 		LogValuesFunc: func(c *echo.Context, v echomw.RequestLoggerValues) error {
 			ctx := c.Request().Context()
-			if v.RequestID != "" && logger.RequestID(ctx) == "" {
-				ctx = logger.WithRequestID(ctx, v.RequestID)
+			if v.RequestID != "" && applog.RequestID(ctx) == "" {
+				ctx = applog.WithRequestID(ctx, v.RequestID)
 				c.SetRequest(c.Request().WithContext(ctx))
 			}
 
-			requestLogger := logger.WithContext(ctx, baseLogger)
+			requestLogger := applog.WithContext(ctx, baseLogger)
 			attrs := []any{
 				"method", v.Method,
 				"uri", v.URI,

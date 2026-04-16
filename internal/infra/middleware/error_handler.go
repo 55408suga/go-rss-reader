@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"rss_reader/internal/apperror"
-	"rss_reader/internal/infra/logger"
+	"rss_reader/internal/applog"
 
 	"github.com/labstack/echo/v5"
 )
@@ -40,19 +40,16 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 
 		requestID := requestIDFromEcho(c)
 		ctx := c.Request().Context()
-		if requestID != "" && logger.RequestID(ctx) == "" {
-			ctx = logger.WithRequestID(ctx, requestID)
+		if requestID != "" && applog.RequestID(ctx) == "" {
+			ctx = applog.WithRequestID(ctx, requestID)
 			c.SetRequest(c.Request().WithContext(ctx))
 		}
-		log := logger.WithContext(ctx, baseLogger)
+		log := applog.WithContext(ctx, baseLogger)
 
 		var appErr *apperror.AppError
 		if errors.As(err, &appErr) {
-			status := appErr.Code.HTTPStatus()
-			message := appErr.Message
-			if status >= http.StatusInternalServerError && message == "" {
-				message = "internal server error"
-			}
+			status := statusFromCode(appErr.Code)
+			message := publicMessage(status, appErr.Message)
 			writeErrorJSON(c, status, appErr.Code, message, requestID)
 			if status >= http.StatusInternalServerError {
 				log.ErrorContext(ctx, "request failed",
@@ -67,14 +64,8 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 		var httpErr *echo.HTTPError
 		if errors.As(err, &httpErr) {
 			status := httpErr.Code
-			code := apperror.CodeFromStatus(status)
-			message := httpErr.Message
-			if status >= http.StatusInternalServerError {
-				message = "internal server error"
-			}
-			if message == "" {
-				message = http.StatusText(status)
-			}
+			code := codeFromStatus(status)
+			message := publicMessage(status, httpErr.Message)
 			writeErrorJSON(c, status, code, message, requestID)
 			if status >= http.StatusInternalServerError {
 				log.ErrorContext(ctx, "request failed",
@@ -100,4 +91,47 @@ func writeErrorJSON(c *echo.Context, status int, code apperror.Code, message, re
 		Meta:  metaBody{RequestID: requestID},
 	}
 	_ = c.JSON(status, response)
+}
+
+func statusFromCode(code apperror.Code) int {
+	switch code {
+	case apperror.CodeNotFound:
+		return http.StatusNotFound
+	case apperror.CodeInvalidArgument:
+		return http.StatusBadRequest
+	case apperror.CodeConflict:
+		return http.StatusConflict
+	case apperror.CodeExternalUnavailable:
+		return http.StatusBadGateway
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+func codeFromStatus(status int) apperror.Code {
+	switch status {
+	case http.StatusBadRequest, http.StatusUnprocessableEntity:
+		return apperror.CodeInvalidArgument
+	case http.StatusNotFound:
+		return apperror.CodeNotFound
+	case http.StatusConflict:
+		return apperror.CodeConflict
+	case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return apperror.CodeExternalUnavailable
+	default:
+		if status >= http.StatusInternalServerError {
+			return apperror.CodeInternal
+		}
+		return apperror.CodeInvalidArgument
+	}
+}
+
+func publicMessage(status int, message string) string {
+	if status >= http.StatusInternalServerError {
+		return "internal server error"
+	}
+	if message == "" {
+		return http.StatusText(status)
+	}
+	return message
 }

@@ -94,4 +94,4 @@ SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last
 FROM feed_fetch_status
 WHERE next_fetch_at <= $1
 ORDER BY next_fetch_at ASC
-LIMIT $2;
+LIMIT $2::integer;

@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/infra/logger"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

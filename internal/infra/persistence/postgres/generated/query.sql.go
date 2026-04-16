@@ -165,16 +165,16 @@ SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last
 FROM feed_fetch_status
 WHERE next_fetch_at <= $1
 ORDER BY next_fetch_at ASC
-LIMIT $2
+LIMIT $2::integer
 `
 
 type GetDueFeedFetchStatusesParams struct {
 	NextFetchAt time.Time
-	Limit       int32
+	Column2     int
 }
 
 func (q *Queries) GetDueFeedFetchStatuses(ctx context.Context, arg GetDueFeedFetchStatusesParams) ([]FeedFetchStatus, error) {
-	rows, err := q.db.Query(ctx, getDueFeedFetchStatuses, arg.NextFetchAt, arg.Limit)
+	rows, err := q.db.Query(ctx, getDueFeedFetchStatuses, arg.NextFetchAt, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
@@ -335,12 +335,12 @@ type SaveFeedFetchStatusParams struct {
 	FeedID             uuid.UUID
 	LastFetchedAt      time.Time
 	NextFetchAt        time.Time
-	StatusCode         int32
+	StatusCode         int
 	ErrorMessage       *string
 	LastModified       *time.Time
 	Etag               *string
-	FetchIntervalHours int32
-	FailureCount       int32
+	FetchIntervalHours int
+	FailureCount       int
 }
 
 func (q *Queries) SaveFeedFetchStatus(ctx context.Context, arg SaveFeedFetchStatusParams) error {
