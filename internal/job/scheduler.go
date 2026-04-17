@@ -40,14 +40,13 @@ func (s *Scheduler) Add(j Job) {
 // Start launches all registered jobs.
 func (s *Scheduler) Start(ctx context.Context) {
 	for _, j := range s.jobs {
-		s.wg.Add(1)
-		go s.runJob(ctx, j)
+		s.wg.Go(func() {
+			s.runJob(ctx, j)
+		})
 	}
 }
 
 func (s *Scheduler) runJob(ctx context.Context, j Job) {
-	defer s.wg.Done()
-
 	s.executeJob(ctx, j)
 
 	ticker := time.NewTicker(j.Interval)
