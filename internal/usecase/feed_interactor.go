@@ -39,7 +39,7 @@ func NewFeedInteractor(
 func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error) {
 	const op = "FeedInteractor.RegisterFeed"
 
-	feed, articles, feedCursor, err := i.fetcher.FetchFeedWithArticles(ctx, feedURL)
+	feed, articles, feedCursor, err := i.fetcher.FetchNewFeed(ctx, feedURL)
 	if err != nil {
 		return nil, nil, apperror.Wrap(err, op)
 	}
@@ -108,7 +108,7 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 		return apperror.Wrap(err, op+".GetFeedByID")
 	}
 
-	feed, articles, _, err := i.fetcher.FetchFeedWithArticles(ctx, currentFeed.FeedURL)
+	feed, articles, _, err := i.fetcher.FetchNewFeed(ctx, currentFeed.FeedURL)
 	if err != nil {
 		return apperror.Wrap(err, op+".FetchFeedWithArticles")
 	}

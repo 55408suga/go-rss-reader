@@ -41,12 +41,13 @@ func NewRSSGateway(httpClient *http.Client, logger *slog.Logger) *RSSGateway {
 	}
 }
 
-// FetchFeedWithArticles fetches and parses an RSS feed URL, returning both
-// the feed metadata and all articles in a single HTTP request.
-// Article FeedIDs are set to uuid.Nil; callers must set them after feed is persisted.
-func (rg *RSSGateway) FetchFeedWithArticles(
+// FetchFeedWithCursor fetches and parses an RSS feed URL, returning feed metadata,
+// parsed articles, and the latest fetch cursor (ETag/Last-Modified) from response headers.
+// Article FeedIDs are initialized as uuid.Nil; callers must set them after persisting the feed.
+func (rg *RSSGateway) FetchFeedWithCursor(
 	ctx context.Context,
 	feedURL string,
+	feedCursor *model.FeedCursor,
 ) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
 	const op = "RSSGateway.FetchFeedWithArticles"
 	startedAt := time.Now()
@@ -54,6 +55,15 @@ func (rg *RSSGateway) FetchFeedWithArticles(
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return nil, nil, nil, apperror.NewInvalidArgument(op, "invalid feed url", err)
+	}
+	// add etag and last-modified headers for conditional request if feedCursor is provided
+	if feedCursor != nil {
+		if feedCursor.ETag != nil {
+			req.Header.Set("If-None-Match", *feedCursor.ETag)
+		}
+		if feedCursor.LastModified != nil {
+			req.Header.Set("If-Modified-Since", feedCursor.LastModified.Format(http.TimeFormat))
+		}
 	}
 	// send get request to fetch rss feed
 	resp, err := rg.httpClient.Do(req)
@@ -75,7 +85,14 @@ func (rg *RSSGateway) FetchFeedWithArticles(
 		}
 	}()
 	// consider non-2xx status codes as errors, but log the response for debugging
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode == http.StatusNotModified {
+		applogger.WithContext(ctx, rg.logger).InfoContext(ctx,
+			"rss feed not modified since last fetch",
+			"feed_url", feedURL,
+			"duration_ms", time.Since(startedAt).Milliseconds(),
+		)
+		return nil, nil, feedCursor, nil
+	} else if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		wrapped := apperror.NewExternalUnavailable(
 			op,
 			fmt.Sprintf("rss feed returned status %d", resp.StatusCode),
@@ -147,13 +164,19 @@ func (rg *RSSGateway) FetchFeedWithArticles(
 	// build fetch status
 	etag := toOptionalString(strings.TrimSpace(resp.Header.Get("ETag")))
 	lastModified := parseHTTPTime(strings.TrimSpace(resp.Header.Get("Last-Modified")))
-	feedCursor := &model.FeedCursor{
+	feedCursor = &model.FeedCursor{
 		ETag:         etag,
 		LastModified: lastModified,
 	}
 	return feed, articles, feedCursor, nil
 }
 
+// FetchNewFeed is a convenience method for fetching a feed without providing a cursor (i.e. unconditional request).
+func (rg *RSSGateway) FetchNewFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
+	return rg.FetchFeedWithCursor(ctx, feedURL, nil)
+}
+
+// 以下util後でまとめを検討
 func resolveExternalID(item *gofeed.Item, publishedAt time.Time) string {
 	if guid := strings.TrimSpace(item.GUID); guid != "" {
 		return guid
@@ -173,7 +196,6 @@ func resolveExternalID(item *gofeed.Item, publishedAt time.Time) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// 以下util後でまとめを検討
 func toOptionalString(value string) *string {
 	if value == "" {
 		return nil
