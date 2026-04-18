@@ -56,6 +56,7 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 	if err != nil {
 		return nil, nil, nil, apperror.NewInvalidArgument(op, "invalid feed url", err)
 	}
+
 	// add etag and last-modified headers for conditional request if feedCursor is provided
 	if feedCursor != nil {
 		if feedCursor.ETag != nil {
@@ -65,6 +66,7 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 			req.Header.Set("If-Modified-Since", feedCursor.LastModified.Format(http.TimeFormat))
 		}
 	}
+	req.Header.Set("User-Agent", "Go RSS Reader/1.0")
 	// send get request to fetch rss feed
 	resp, err := rg.httpClient.Do(req)
 	if err != nil {
@@ -172,7 +174,10 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 }
 
 // FetchNewFeed is a convenience method for fetching a feed without providing a cursor (i.e. unconditional request).
-func (rg *RSSGateway) FetchNewFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
+func (rg *RSSGateway) FetchNewFeed(
+	ctx context.Context,
+	feedURL string,
+) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
 	return rg.FetchFeedWithCursor(ctx, feedURL, nil)
 }
 
