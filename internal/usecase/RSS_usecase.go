@@ -10,7 +10,11 @@ import (
 // RSSFetcher defines the interface for fetching feed and articles from external RSS sources.
 type RSSFetcher interface {
 	FetchNewFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, *model.FeedCursor, error)
-	FetchFeedWithCorsor(ctx context.Context, dueFeed model.DueFeed) (*model.Feed, []*model.Article, *model.FeedCursor, error)
+	FetchFeedWithCursor(
+		ctx context.Context,
+		feedURL string,
+		feedCursor *model.FeedCursor,
+	) (*model.Feed, []*model.Article, *model.FeedCursor, error)
 }
 
 // FeedUsecase defines the interface for feed-related use cases.
