@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -43,7 +42,8 @@ func NewRSSGateway(httpClient *http.Client, logger *slog.Logger) *RSSGateway {
 
 // FetchFeedWithCursor fetches and parses an RSS feed URL, returning feed metadata,
 // parsed articles, and the latest fetch cursor (ETag/Last-Modified) from response headers.
-// Article FeedIDs are initialized as uuid.Nil; callers must set them after persisting the feed.
+// Returned articles already have FeedID set to the returned feed's ID (generated in model.NewFeed).
+// Callers refreshing an existing feed must overwrite Article.FeedID with the existing feed's ID.
 func (rg *RSSGateway) FetchFeedWithCursor(
 	ctx context.Context,
 	feedURL string,
@@ -154,7 +154,7 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 			item.Content,
 			item.Link,
 			publishedAt,
-			uuid.Nil, // FeedID will be set by the caller after feed is saved
+			feed.ID,
 			externalID,
 		)
 		if err != nil {

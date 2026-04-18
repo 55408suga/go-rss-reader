@@ -54,8 +54,12 @@ func main() {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+
+	components.Scheduler.Start(ctx)
+
 	if err := sc.Start(ctx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("failed to start server", "error", err)
 	}
 
+	components.Scheduler.Shutdown()
 }

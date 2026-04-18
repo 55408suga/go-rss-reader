@@ -56,7 +56,6 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 		}
 
 		for _, article := range articles {
-			article.FeedID = feed.ID
 			if err := i.articleRepo.SaveArticle(txCtx, article); err != nil {
 				return apperror.Wrap(err, op+".SaveArticle")
 			}
