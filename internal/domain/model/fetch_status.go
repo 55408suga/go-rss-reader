@@ -24,13 +24,19 @@ type FetchStatus struct {
 	FailureCount       int `json:"failure_count"`
 }
 
+// DueFeed bundles a feed's URL with its current fetch status for scheduled refresh.
+type DueFeed struct {
+	FeedURL string
+	Status  *FetchStatus
+}
+
 const (
 	defaultFetchIntervalHours = 24
 	defaultFetchStatusCode    = 200
 )
 
-// NewFetchStatusDefault creates FetchStatus with explicit values.
-func NewFetchStatusDefault(
+// NewFetchStatusWith creates FetchStatus with all fields explicitly specified.
+func NewFetchStatusWith(
 	feedID uuid.UUID,
 	lastFetchedAt time.Time,
 	nextFetchAt time.Time,
@@ -56,7 +62,7 @@ func NewFetchStatusDefault(
 func NewFetchStatus(feedID uuid.UUID, feedCursor FeedCursor) *FetchStatus {
 	lastFetchedAt := time.Now().UTC()
 
-	return NewFetchStatusDefault(
+	return NewFetchStatusWith(
 		feedID,
 		lastFetchedAt,
 		lastFetchedAt.Add(time.Duration(defaultFetchIntervalHours)*time.Hour),

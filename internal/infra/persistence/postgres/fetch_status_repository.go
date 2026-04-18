@@ -74,13 +74,13 @@ func (r *FetchStatusRepository) GetFetchStatusByFeedID(
 	return toFetchStatusModel(status), nil
 }
 
-// GetDueFetchStatuses retrieves statuses that are due for refresh.
-func (r *FetchStatusRepository) GetDueFetchStatuses(
+// GetDueFeeds retrieves feeds (with current fetch status) that are due for refresh.
+func (r *FetchStatusRepository) GetDueFeeds(
 	ctx context.Context,
 	now time.Time,
 	limit int,
-) ([]*model.FetchStatus, error) {
-	const op = "FetchStatusRepository.GetDueFetchStatuses"
+) ([]*model.DueFeed, error) {
+	const op = "FetchStatusRepository.GetDueFeeds"
 
 	rows, err := r.querier(ctx).GetDueFeedFetchStatuses(ctx, generated.GetDueFeedFetchStatusesParams{
 		NextFetchAt: now,
@@ -90,11 +90,11 @@ func (r *FetchStatusRepository) GetDueFetchStatuses(
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
-	statuses := make([]*model.FetchStatus, 0, len(rows))
+	dueFeeds := make([]*model.DueFeed, 0, len(rows))
 	for _, row := range rows {
-		statuses = append(statuses, toFetchStatusModel(row))
+		dueFeeds = append(dueFeeds, toDueFeedModel(row))
 	}
-	return statuses, nil
+	return dueFeeds, nil
 }
 
 func toFetchStatusModel(status generated.FeedFetchStatus) *model.FetchStatus {
@@ -110,5 +110,24 @@ func toFetchStatusModel(status generated.FeedFetchStatus) *model.FetchStatus {
 		},
 		FetchIntervalHours: status.FetchIntervalHours,
 		FailureCount:       status.FailureCount,
+	}
+}
+
+func toDueFeedModel(row generated.GetDueFeedFetchStatusesRow) *model.DueFeed {
+	return &model.DueFeed{
+		FeedURL: row.FeedUrl,
+		Status: &model.FetchStatus{
+			FeedID:        row.FeedID,
+			LastFetchedAt: row.LastFetchedAt,
+			NextFetchAt:   row.NextFetchAt,
+			StatusCode:    row.StatusCode,
+			ErrorMessage:  row.ErrorMessage,
+			FeedCursor: model.FeedCursor{
+				LastModified: row.LastModified,
+				ETag:         row.Etag,
+			},
+			FetchIntervalHours: row.FetchIntervalHours,
+			FailureCount:       row.FailureCount,
+		},
 	}
 }

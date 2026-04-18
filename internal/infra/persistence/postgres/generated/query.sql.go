@@ -161,10 +161,12 @@ func (q *Queries) GetArticles(ctx context.Context, feedID uuid.UUID) ([]Article,
 }
 
 const getDueFeedFetchStatuses = `-- name: GetDueFeedFetchStatuses :many
-SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
-FROM feed_fetch_status
-WHERE next_fetch_at <= $1
-ORDER BY next_fetch_at ASC
+SELECT ffs.feed_id, ffs.last_fetched_at, ffs.next_fetch_at, ffs.status_code, ffs.error_message,
+       ffs.last_modified, ffs.etag, ffs.fetch_interval_hours, ffs.failure_count, f.feed_url
+FROM feed_fetch_status ffs
+JOIN feeds f ON ffs.feed_id = f.id
+WHERE ffs.next_fetch_at <= $1
+ORDER BY ffs.next_fetch_at ASC
 LIMIT $2::integer
 `
 
@@ -173,15 +175,28 @@ type GetDueFeedFetchStatusesParams struct {
 	Column2     int
 }
 
-func (q *Queries) GetDueFeedFetchStatuses(ctx context.Context, arg GetDueFeedFetchStatusesParams) ([]FeedFetchStatus, error) {
+type GetDueFeedFetchStatusesRow struct {
+	FeedID             uuid.UUID
+	LastFetchedAt      time.Time
+	NextFetchAt        time.Time
+	StatusCode         int
+	ErrorMessage       *string
+	LastModified       *time.Time
+	Etag               *string
+	FetchIntervalHours int
+	FailureCount       int
+	FeedUrl            string
+}
+
+func (q *Queries) GetDueFeedFetchStatuses(ctx context.Context, arg GetDueFeedFetchStatusesParams) ([]GetDueFeedFetchStatusesRow, error) {
 	rows, err := q.db.Query(ctx, getDueFeedFetchStatuses, arg.NextFetchAt, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []FeedFetchStatus{}
+	items := []GetDueFeedFetchStatusesRow{}
 	for rows.Next() {
-		var i FeedFetchStatus
+		var i GetDueFeedFetchStatusesRow
 		if err := rows.Scan(
 			&i.FeedID,
 			&i.LastFetchedAt,
@@ -192,6 +207,7 @@ func (q *Queries) GetDueFeedFetchStatuses(ctx context.Context, arg GetDueFeedFet
 			&i.Etag,
 			&i.FetchIntervalHours,
 			&i.FailureCount,
+			&i.FeedUrl,
 		); err != nil {
 			return nil, err
 		}
