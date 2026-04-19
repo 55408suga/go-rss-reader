@@ -13,6 +13,7 @@ import (
 	applogger "rss_reader/internal/infra/logger"
 	appmiddleware "rss_reader/internal/infra/middleware"
 	"rss_reader/internal/infra/router"
+	"rss_reader/internal/job"
 	"syscall"
 	"time"
 
@@ -55,11 +56,18 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	components.Scheduler.Start(ctx)
+	scheduler := job.NewJobScheduler(logger)
+	scheduler.Add(job.Job{
+		Name:     "refresh-due-feeds",
+		Interval: 10 * time.Minute,
+		Timeout:  5 * time.Minute,
+		Fnc:      components.FeedJobUC.RefreshDueFeeds,
+	})
+	scheduler.Start(ctx)
 
 	if err := sc.Start(ctx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("failed to start server", "error", err)
 	}
 
-	components.Scheduler.Shutdown()
+	scheduler.Shutdown()
 }

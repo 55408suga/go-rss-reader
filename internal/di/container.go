@@ -9,16 +9,14 @@ import (
 	"rss_reader/internal/infra/config"
 	"rss_reader/internal/infra/gateway"
 	"rss_reader/internal/infra/persistence/postgres"
-	"rss_reader/internal/job"
 	"rss_reader/internal/usecase"
-	"time"
 )
 
 // ApplicationComponents holds fully wired application entry-point dependencies.
 type ApplicationComponents struct {
 	FeedHandler    handler.FeedHandler
 	ArticleHandler handler.ArticleHandler
-	Scheduler      *job.Scheduler
+	FeedJobUC      usecase.FeedJobUsecase
 	close          func() error
 }
 
@@ -55,18 +53,10 @@ func NewApplicationComponents(cfg *config.Config, logger *slog.Logger) (*Applica
 	feedHandler := handler.NewFeedHandler(feedUC, logger)
 	articleHandler := handler.NewArticleHandler(articleUC, logger)
 
-	scheduler := job.NewJobScheduler(logger)
-	scheduler.Add(job.Job{
-		Name:     "refresh-due-feeds",
-		Interval: 10 * time.Minute,
-		Timeout:  5 * time.Minute,
-		Fnc:      feedJobUC.RefreshDueFeeds,
-	})
-
 	return &ApplicationComponents{
 		FeedHandler:    *feedHandler,
 		ArticleHandler: *articleHandler,
-		Scheduler:      scheduler,
+		FeedJobUC:      feedJobUC,
 		close:          func() error { db.Close(); return nil },
 	}, nil
 }
