@@ -32,76 +32,6 @@ func (q *Queries) DeleteFeed(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getAllArticles = `-- name: GetAllArticles :many
-SELECT id, title, description, published_at, website_url, content, feed_id, external_id
-FROM articles
-ORDER BY published_at DESC
-`
-
-func (q *Queries) GetAllArticles(ctx context.Context) ([]Article, error) {
-	rows, err := q.db.Query(ctx, getAllArticles)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Article{}
-	for rows.Next() {
-		var i Article
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Description,
-			&i.PublishedAt,
-			&i.WebsiteUrl,
-			&i.Content,
-			&i.FeedID,
-			&i.ExternalID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllFeeds = `-- name: GetAllFeeds :many
-SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
-FROM feeds
-ORDER BY registered_at DESC
-`
-
-func (q *Queries) GetAllFeeds(ctx context.Context) ([]Feed, error) {
-	rows, err := q.db.Query(ctx, getAllFeeds)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Feed{}
-	for rows.Next() {
-		var i Feed
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.RegisteredAt,
-			&i.UpdatedAt,
-			&i.FeedUrl,
-			&i.WebsiteUrl,
-			&i.Description,
-			&i.Language,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getArticleByID = `-- name: GetArticleByID :one
 SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
@@ -124,42 +54,6 @@ func (q *Queries) GetArticleByID(ctx context.Context, id uuid.UUID) (Article, er
 	return i, err
 }
 
-const getArticles = `-- name: GetArticles :many
-SELECT id, title, description, published_at, website_url, content, feed_id, external_id
-FROM articles
-WHERE feed_id = $1
-ORDER BY published_at DESC
-`
-
-func (q *Queries) GetArticles(ctx context.Context, feedID uuid.UUID) ([]Article, error) {
-	rows, err := q.db.Query(ctx, getArticles, feedID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Article{}
-	for rows.Next() {
-		var i Article
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Description,
-			&i.PublishedAt,
-			&i.WebsiteUrl,
-			&i.Content,
-			&i.FeedID,
-			&i.ExternalID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getDueFeedFetchStatuses = `-- name: GetDueFeedFetchStatuses :many
 SELECT ffs.feed_id, ffs.last_fetched_at, ffs.next_fetch_at, ffs.status_code, ffs.error_message,
        ffs.last_modified, ffs.etag, ffs.fetch_interval_hours, ffs.failure_count, f.feed_url
@@ -171,8 +65,8 @@ LIMIT $2::integer
 `
 
 type GetDueFeedFetchStatusesParams struct {
-	NextFetchAt time.Time
-	Column2     int
+	Now   time.Time
+	Limit int
 }
 
 type GetDueFeedFetchStatusesRow struct {
@@ -189,7 +83,7 @@ type GetDueFeedFetchStatusesRow struct {
 }
 
 func (q *Queries) GetDueFeedFetchStatuses(ctx context.Context, arg GetDueFeedFetchStatusesParams) ([]GetDueFeedFetchStatusesRow, error) {
-	rows, err := q.db.Query(ctx, getDueFeedFetchStatuses, arg.NextFetchAt, arg.Column2)
+	rows, err := q.db.Query(ctx, getDueFeedFetchStatuses, arg.Now, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -263,6 +157,260 @@ func (q *Queries) GetFeedFetchStatusByFeedID(ctx context.Context, feedID uuid.UU
 		&i.FailureCount,
 	)
 	return i, err
+}
+
+const listArticles = `-- name: ListArticles :many
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
+FROM articles
+ORDER BY published_at DESC, id DESC
+LIMIT $1::integer
+`
+
+func (q *Queries) ListArticles(ctx context.Context, limit int) ([]Article, error) {
+	rows, err := q.db.Query(ctx, listArticles, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Article{}
+	for rows.Next() {
+		var i Article
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.PublishedAt,
+			&i.WebsiteUrl,
+			&i.Content,
+			&i.FeedID,
+			&i.ExternalID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticlesByFeedID = `-- name: ListArticlesByFeedID :many
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
+FROM articles
+WHERE feed_id = $1
+ORDER BY published_at DESC, id DESC
+LIMIT $2::integer
+`
+
+type ListArticlesByFeedIDParams struct {
+	FeedID uuid.UUID
+	Limit  int
+}
+
+func (q *Queries) ListArticlesByFeedID(ctx context.Context, arg ListArticlesByFeedIDParams) ([]Article, error) {
+	rows, err := q.db.Query(ctx, listArticlesByFeedID, arg.FeedID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Article{}
+	for rows.Next() {
+		var i Article
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.PublishedAt,
+			&i.WebsiteUrl,
+			&i.Content,
+			&i.FeedID,
+			&i.ExternalID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticlesByFeedIDFromCursor = `-- name: ListArticlesByFeedIDFromCursor :many
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
+FROM articles
+WHERE feed_id = $1
+  AND (published_at < $2
+       OR (published_at = $2 AND id < $3))
+ORDER BY published_at DESC, id DESC
+LIMIT $4::integer
+`
+
+type ListArticlesByFeedIDFromCursorParams struct {
+	FeedID   uuid.UUID
+	CursorAt time.Time
+	CursorID uuid.UUID
+	Limit    int
+}
+
+func (q *Queries) ListArticlesByFeedIDFromCursor(ctx context.Context, arg ListArticlesByFeedIDFromCursorParams) ([]Article, error) {
+	rows, err := q.db.Query(ctx, listArticlesByFeedIDFromCursor,
+		arg.FeedID,
+		arg.CursorAt,
+		arg.CursorID,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Article{}
+	for rows.Next() {
+		var i Article
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.PublishedAt,
+			&i.WebsiteUrl,
+			&i.Content,
+			&i.FeedID,
+			&i.ExternalID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticlesFromCursor = `-- name: ListArticlesFromCursor :many
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
+FROM articles
+WHERE published_at < $1
+   OR (published_at = $1 AND id < $2)
+ORDER BY published_at DESC, id DESC
+LIMIT $3::integer
+`
+
+type ListArticlesFromCursorParams struct {
+	CursorAt time.Time
+	CursorID uuid.UUID
+	Limit    int
+}
+
+func (q *Queries) ListArticlesFromCursor(ctx context.Context, arg ListArticlesFromCursorParams) ([]Article, error) {
+	rows, err := q.db.Query(ctx, listArticlesFromCursor, arg.CursorAt, arg.CursorID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Article{}
+	for rows.Next() {
+		var i Article
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.PublishedAt,
+			&i.WebsiteUrl,
+			&i.Content,
+			&i.FeedID,
+			&i.ExternalID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFeeds = `-- name: ListFeeds :many
+SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
+FROM feeds
+ORDER BY registered_at DESC, id DESC
+LIMIT $1::integer
+`
+
+// カーソル付きと分割しなきゃsqlcの型変換がうまくいかない
+func (q *Queries) ListFeeds(ctx context.Context, limit int) ([]Feed, error) {
+	rows, err := q.db.Query(ctx, listFeeds, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Feed{}
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.RegisteredAt,
+			&i.UpdatedAt,
+			&i.FeedUrl,
+			&i.WebsiteUrl,
+			&i.Description,
+			&i.Language,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFeedsFromCursor = `-- name: ListFeedsFromCursor :many
+SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
+FROM feeds
+WHERE registered_at < $1
+   OR (registered_at = $1 AND id < $2)
+ORDER BY registered_at DESC, id DESC
+LIMIT $3::integer
+`
+
+type ListFeedsFromCursorParams struct {
+	CursorAt time.Time
+	CursorID uuid.UUID
+	Limit    int
+}
+
+func (q *Queries) ListFeedsFromCursor(ctx context.Context, arg ListFeedsFromCursorParams) ([]Feed, error) {
+	rows, err := q.db.Query(ctx, listFeedsFromCursor, arg.CursorAt, arg.CursorID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Feed{}
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.RegisteredAt,
+			&i.UpdatedAt,
+			&i.FeedUrl,
+			&i.WebsiteUrl,
+			&i.Description,
+			&i.Language,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const saveArticle = `-- name: SaveArticle :exec

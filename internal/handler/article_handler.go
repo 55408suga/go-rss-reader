@@ -27,9 +27,10 @@ func NewArticleHandler(articleUsecase usecase.ArticleUsecase, logger *slog.Logge
 	return &ArticleHandler{articleUsecase: articleUsecase, logger: logger}
 }
 
-// GetArticlesByFeedID returns articles for a feed.
-func (ah *ArticleHandler) GetArticlesByFeedID(c *echo.Context) error {
-	const op = "ArticleHandler.GetArticlesByFeedID"
+// ListArticlesByFeedID returns articles for a feed.
+// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+func (ah *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
+	const op = "ArticleHandler.ListArticlesByFeedID"
 
 	feedID, err := uuid.Parse(c.Param("feed_id"))
 	if err != nil {
@@ -40,7 +41,8 @@ func (ah *ArticleHandler) GetArticlesByFeedID(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "invalid feed id", err)
 	}
 
-	articles, err := ah.articleUsecase.GetArticlesByFeedID(c.Request().Context(), feedID)
+	cursor := parseCursorFromQuery(c)
+	articles, err := ah.articleUsecase.ListArticlesByFeedID(c.Request().Context(), feedID, cursor, 50)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
@@ -48,14 +50,17 @@ func (ah *ArticleHandler) GetArticlesByFeedID(c *echo.Context) error {
 	return c.JSON(http.StatusOK, articles)
 }
 
-// GetAllArticles returns all articles.
-func (ah *ArticleHandler) GetAllArticles(c *echo.Context) error {
-	const op = "ArticleHandler.GetAllArticles"
+// ListArticles returns articles.
+// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+func (ah *ArticleHandler) ListArticles(c *echo.Context) error {
+	const op = "ArticleHandler.ListArticles"
 
-	articles, err := ah.articleUsecase.GetAllArticles(c.Request().Context())
+	cursor := parseCursorFromQuery(c)
+	articles, err := ah.articleUsecase.ListArticles(c.Request().Context(), cursor, 50)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
 	return c.JSON(http.StatusOK, articles)
 }
+

@@ -4,6 +4,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"time"
 	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
@@ -77,16 +78,37 @@ func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
 	})
 }
 
-// GetAllFeeds returns all registered feeds.
-func (fh *FeedHandler) GetAllFeeds(c *echo.Context) error {
-	const op = "FeedHandler.GetAllFeeds"
+// ListFeeds returns registered feeds.
+// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+func (fh *FeedHandler) ListFeeds(c *echo.Context) error {
+	const op = "FeedHandler.ListFeeds"
 
-	feeds, err := fh.feedUsecase.GetAllFeeds(c.Request().Context())
+	cursor := parseCursorFromQuery(c)
+	feeds, err := fh.feedUsecase.ListFeeds(c.Request().Context(), cursor, 50)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
 	return c.JSON(http.StatusOK, feeds)
+}
+
+// parseCursorFromQuery extracts a PageCursor from cursor_at and cursor_id query params.
+// Returns nil if either param is absent or invalid.
+func parseCursorFromQuery(c *echo.Context) *model.PageCursor {
+	rawAt := c.QueryParam("cursor_at")
+	rawID := c.QueryParam("cursor_id")
+	if rawAt == "" || rawID == "" {
+		return nil
+	}
+	at, err := time.Parse(time.RFC3339, rawAt)
+	if err != nil {
+		return nil
+	}
+	id, err := uuid.Parse(rawID)
+	if err != nil {
+		return nil
+	}
+	return &model.PageCursor{At: at, ID: id}
 }
 
 // GetFeedByID returns a single feed by ID.

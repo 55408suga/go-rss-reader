@@ -81,17 +81,38 @@ func (r *ArticleRepository) GetArticleByID(ctx context.Context, articleID uuid.U
 	), nil
 }
 
-// GetArticlesByFeedID retrieves articles for a specific feed.
-func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
-	const op = "ArticleRepository.GetArticlesByFeedID"
+// ListArticlesByFeedID retrieves articles for a specific feed.
+// If cursor is non-nil, results start after the given position (keyset pagination).
+func (r *ArticleRepository) ListArticlesByFeedID(
+	ctx context.Context,
+	feedID uuid.UUID,
+	cursor *model.PageCursor,
+	limit int,
+) ([]*model.Article, error) {
+	const op = "ArticleRepository.ListArticlesByFeedID"
 
-	articles, err := r.querier(ctx).GetArticles(ctx, feedID)
+	var rawArticles []generated.Article
+	var err error
+
+	if cursor == nil {
+		rawArticles, err = r.querier(ctx).ListArticlesByFeedID(ctx, generated.ListArticlesByFeedIDParams{
+			FeedID: feedID,
+			Limit:  limit,
+		})
+	} else {
+		rawArticles, err = r.querier(ctx).ListArticlesByFeedIDFromCursor(ctx, generated.ListArticlesByFeedIDFromCursorParams{
+			FeedID:   feedID,
+			CursorAt: cursor.At,
+			CursorID: cursor.ID,
+			Limit:    limit,
+		})
+	}
 	if err != nil {
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
-	articleModels := make([]*model.Article, 0, len(articles))
-	for _, article := range articles {
+	articleModels := make([]*model.Article, 0, len(rawArticles))
+	for _, article := range rawArticles {
 		articleModels = append(articleModels, newArticleModel(
 			article.ID,
 			article.Title,
@@ -106,17 +127,29 @@ func (r *ArticleRepository) GetArticlesByFeedID(ctx context.Context, feedID uuid
 	return articleModels, nil
 }
 
-// GetAllArticles retrieves all articles ordered by publish time.
-func (r *ArticleRepository) GetAllArticles(ctx context.Context) ([]*model.Article, error) {
-	const op = "ArticleRepository.GetAllArticles"
+// ListArticles retrieves articles ordered by publish time.
+// If cursor is non-nil, results start after the given position (keyset pagination).
+func (r *ArticleRepository) ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error) {
+	const op = "ArticleRepository.ListArticles"
 
-	articles, err := r.querier(ctx).GetAllArticles(ctx)
+	var rawArticles []generated.Article
+	var err error
+
+	if cursor == nil {
+		rawArticles, err = r.querier(ctx).ListArticles(ctx, limit)
+	} else {
+		rawArticles, err = r.querier(ctx).ListArticlesFromCursor(ctx, generated.ListArticlesFromCursorParams{
+			CursorAt: cursor.At,
+			CursorID: cursor.ID,
+			Limit:    limit,
+		})
+	}
 	if err != nil {
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
-	articleModels := make([]*model.Article, 0, len(articles))
-	for _, article := range articles {
+	articleModels := make([]*model.Article, 0, len(rawArticles))
+	for _, article := range rawArticles {
 		articleModels = append(articleModels, newArticleModel(
 			article.ID,
 			article.Title,

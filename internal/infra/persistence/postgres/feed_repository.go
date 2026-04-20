@@ -78,19 +78,30 @@ func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	}, nil
 }
 
-// GetAllFeeds retrieves all feeds ordered by registration date.
-func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error) {
-	const op = "FeedRepository.GetAllFeeds"
+// ListFeeds retrieves feeds ordered by registration date.
+// If cursor is non-nil, results start after the given position (keyset pagination).
+func (r *FeedRepository) ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error) {
+	const op = "FeedRepository.ListFeeds"
 
-	feeds, err := r.querier(ctx).GetAllFeeds(ctx)
+	var rawFeeds []generated.Feed
+	var err error
+
+	if cursor == nil {
+		rawFeeds, err = r.querier(ctx).ListFeeds(ctx, limit)
+	} else {
+		rawFeeds, err = r.querier(ctx).ListFeedsFromCursor(ctx, generated.ListFeedsFromCursorParams{
+			CursorAt: cursor.At,
+			CursorID: cursor.ID,
+			Limit:    limit,
+		})
+	}
 	if err != nil {
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
-	// convert generated.Feed to model.Feed
-	feedModels := make([]*model.Feed, 0, len(feeds))
-	for _, feed := range feeds {
-		feedModel := &model.Feed{
+	feedModels := make([]*model.Feed, 0, len(rawFeeds))
+	for _, feed := range rawFeeds {
+		feedModels = append(feedModels, &model.Feed{
 			ID:          feed.ID,
 			Title:       feed.Title,
 			UpdatedAt:   feed.UpdatedAt,
@@ -98,8 +109,7 @@ func (r *FeedRepository) GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
 			WebsiteURL:  feed.WebsiteUrl,
 			Description: feed.Description,
 			Language:    feed.Language,
-		}
-		feedModels = append(feedModels, feedModel)
+		})
 	}
 	return feedModels, nil
 }

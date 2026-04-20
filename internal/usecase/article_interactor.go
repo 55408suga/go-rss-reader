@@ -24,11 +24,11 @@ func NewArticleInteractor(
 	}
 }
 
-// GetArticlesByFeedID returns articles belonging to the given feed.
-func (i *ArticleInteractor) GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error) {
-	const op = "ArticleInteractor.GetArticlesByFeedID"
+// ListArticlesByFeedID returns articles for the given feed starting after cursor (nil = first page).
+func (i *ArticleInteractor) ListArticlesByFeedID(ctx context.Context, feedID uuid.UUID, cursor *model.PageCursor, limit int) ([]*model.Article, error) {
+	const op = "ArticleInteractor.ListArticlesByFeedID"
 
-	articles, err := i.articleRepo.GetArticlesByFeedID(ctx, feedID)
+	articles, err := i.articleRepo.ListArticlesByFeedID(ctx, feedID, cursor, limit)
 	if err != nil {
 		return nil, apperror.Wrap(err, op)
 	}
@@ -36,11 +36,11 @@ func (i *ArticleInteractor) GetArticlesByFeedID(ctx context.Context, feedID uuid
 	return articles, nil
 }
 
-// GetAllArticles returns all stored articles.
-func (i *ArticleInteractor) GetAllArticles(ctx context.Context) ([]*model.Article, error) {
-	const op = "ArticleInteractor.GetAllArticles"
+// ListArticles returns articles starting after cursor (nil = first page).
+func (i *ArticleInteractor) ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error) {
+	const op = "ArticleInteractor.ListArticles"
 
-	articles, err := i.articleRepo.GetAllArticles(ctx)
+	articles, err := i.articleRepo.ListArticles(ctx, cursor, limit)
 	if err != nil {
 		return nil, apperror.Wrap(err, op)
 	}

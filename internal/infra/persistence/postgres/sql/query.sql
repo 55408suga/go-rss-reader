@@ -10,16 +10,37 @@ SELECT id, title, registered_at, updated_at, feed_url, website_url, description,
 FROM feeds
 WHERE id = $1 LIMIT 1;
 
--- name: GetAllFeeds :many
+-- カーソル付きと分割しなきゃsqlcの型変換がうまくいかない
+-- name: ListFeeds :many
 SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
 FROM feeds
-ORDER BY registered_at DESC;
+ORDER BY registered_at DESC, id DESC
+LIMIT sqlc.arg('limit')::integer;
 
--- name: GetArticles :many
+-- name: ListFeedsFromCursor :many
+SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
+FROM feeds
+WHERE registered_at < sqlc.arg('cursor_at')
+   OR (registered_at = sqlc.arg('cursor_at') AND id < sqlc.arg('cursor_id'))
+ORDER BY registered_at DESC, id DESC
+LIMIT sqlc.arg('limit')::integer;
+
+
+-- name: ListArticlesByFeedID :many
 SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
-WHERE feed_id = $1
-ORDER BY published_at DESC;
+WHERE feed_id = sqlc.arg('feed_id')
+ORDER BY published_at DESC, id DESC
+LIMIT sqlc.arg('limit')::integer;
+
+-- name: ListArticlesByFeedIDFromCursor :many
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
+FROM articles
+WHERE feed_id = sqlc.arg('feed_id')
+  AND (published_at < sqlc.arg('cursor_at')
+       OR (published_at = sqlc.arg('cursor_at') AND id < sqlc.arg('cursor_id')))
+ORDER BY published_at DESC, id DESC
+LIMIT sqlc.arg('limit')::integer;
 
 -- name: UpdateFeed :exec
 UPDATE feeds
@@ -48,10 +69,19 @@ SELECT id, title, description, published_at, website_url, content, feed_id, exte
 FROM articles
 WHERE id = $1 LIMIT 1;
 
--- name: GetAllArticles :many
+-- name: ListArticles :many
 SELECT id, title, description, published_at, website_url, content, feed_id, external_id
 FROM articles
-ORDER BY published_at DESC;
+ORDER BY published_at DESC, id DESC
+LIMIT sqlc.arg('limit')::integer;
+
+-- name: ListArticlesFromCursor :many
+SELECT id, title, description, published_at, website_url, content, feed_id, external_id
+FROM articles
+WHERE published_at < sqlc.arg('cursor_at')
+   OR (published_at = sqlc.arg('cursor_at') AND id < sqlc.arg('cursor_id'))
+ORDER BY published_at DESC, id DESC
+LIMIT sqlc.arg('limit')::integer;
 
 -- name: UpdateArticle :exec
 UPDATE articles
@@ -94,6 +124,6 @@ SELECT ffs.feed_id, ffs.last_fetched_at, ffs.next_fetch_at, ffs.status_code, ffs
        ffs.last_modified, ffs.etag, ffs.fetch_interval_hours, ffs.failure_count, f.feed_url
 FROM feed_fetch_status ffs
 JOIN feeds f ON ffs.feed_id = f.id
-WHERE ffs.next_fetch_at <= $1
+WHERE ffs.next_fetch_at <= sqlc.arg('now')
 ORDER BY ffs.next_fetch_at ASC
-LIMIT $2::integer;
+LIMIT sqlc.arg('limit')::integer;

@@ -21,7 +21,7 @@ type RSSFetcher interface {
 type FeedUsecase interface {
 	RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error)
 	GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error)
-	GetAllFeeds(ctx context.Context) ([]*model.Feed, error)
+	ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error)
 	RefreshFeed(ctx context.Context, feedID uuid.UUID) error
 	RefreshAllFeeds(ctx context.Context) error
 	DeleteFeed(ctx context.Context, feedID uuid.UUID) error
@@ -29,6 +29,6 @@ type FeedUsecase interface {
 
 // ArticleUsecase defines the interface for article-related use cases.
 type ArticleUsecase interface {
-	GetArticlesByFeedID(ctx context.Context, feedID uuid.UUID) ([]*model.Article, error)
-	GetAllArticles(ctx context.Context) ([]*model.Article, error)
+	ListArticlesByFeedID(ctx context.Context, feedID uuid.UUID, cursor *model.PageCursor, limit int) ([]*model.Article, error)
+	ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error)
 }

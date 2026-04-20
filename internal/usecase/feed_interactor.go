@@ -86,11 +86,11 @@ func (i *FeedInteractor) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	return feed, nil
 }
 
-// GetAllFeeds returns all feeds.
-func (i *FeedInteractor) GetAllFeeds(ctx context.Context) ([]*model.Feed, error) {
-	const op = "FeedInteractor.GetAllFeeds"
+// ListFeeds returns feeds up to limit starting after cursor (nil = first page).
+func (i *FeedInteractor) ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error) {
+	const op = "FeedInteractor.ListFeeds"
 
-	feeds, err := i.feedRepo.GetAllFeeds(ctx)
+	feeds, err := i.feedRepo.ListFeeds(ctx, cursor, limit)
 	if err != nil {
 		return nil, apperror.Wrap(err, op)
 	}
@@ -136,7 +136,7 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 func (i *FeedInteractor) RefreshAllFeeds(ctx context.Context) error {
 	const op = "FeedInteractor.RefreshAllFeeds"
 
-	feeds, err := i.feedRepo.GetAllFeeds(ctx)
+	feeds, err := i.feedRepo.ListFeeds(ctx, nil, 10_000)
 	if err != nil {
 		return apperror.Wrap(err, op+".GetAllFeeds")
 	}

@@ -6,6 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// PageCursor identifies a position in a keyset-paginated result set.
+type PageCursor struct {
+	At time.Time
+	ID uuid.UUID
+}
+
 // FeedCursor stores HTTP cache headers used for conditional feed fetch.
 type FeedCursor struct {
 	ETag         *string

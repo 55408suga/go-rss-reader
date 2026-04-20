@@ -27,12 +27,12 @@ func TestGeneratedFetchStatusParamsUseInt(t *testing.T) {
 	}
 
 	dueParams := generated.GetDueFeedFetchStatusesParams{
-		NextFetchAt: time.Now(),
-		Column2:     10,
+		Now:   time.Now(),
+		Limit: 10,
 	}
 
-	if _, ok := any(dueParams.Column2).(int); !ok {
-		t.Fatalf("Column2 should use int, got %T", dueParams.Column2)
+	if _, ok := any(dueParams.Limit).(int); !ok {
+		t.Fatalf("Limit should use int, got %T", dueParams.Limit)
 	}
 }
 

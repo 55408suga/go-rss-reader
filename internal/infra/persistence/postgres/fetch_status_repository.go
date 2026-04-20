@@ -83,8 +83,8 @@ func (r *FetchStatusRepository) GetDueFeeds(
 	const op = "FetchStatusRepository.GetDueFeeds"
 
 	rows, err := r.querier(ctx).GetDueFeedFetchStatuses(ctx, generated.GetDueFeedFetchStatusesParams{
-		NextFetchAt: now,
-		Column2:     limit,
+		Now:   now,
+		Limit: limit,
 	})
 	if err != nil {
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
