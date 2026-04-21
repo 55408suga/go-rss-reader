@@ -28,6 +28,11 @@ type FeedUsecase interface {
 
 // ArticleUsecase defines the interface for article-related use cases.
 type ArticleUsecase interface {
-	ListArticlesByFeedID(ctx context.Context, feedID uuid.UUID, cursor *model.PageCursor, limit int) ([]*model.Article, error)
+	ListArticlesByFeedID(
+		ctx context.Context,
+		feedID uuid.UUID,
+		cursor *model.PageCursor,
+		limit int,
+	) ([]*model.Article, error)
 	ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error)
 }

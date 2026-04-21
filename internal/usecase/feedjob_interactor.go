@@ -89,7 +89,7 @@ func (i *FeedJobInteractor) RefreshDueFeeds(ctx context.Context) error {
 			return nil
 		})
 	}
-	g.Wait()
+	_ = g.Wait()
 
 	return ctx.Err()
 }

@@ -25,7 +25,12 @@ func NewArticleInteractor(
 }
 
 // ListArticlesByFeedID returns articles for the given feed starting after cursor (nil = first page).
-func (i *ArticleInteractor) ListArticlesByFeedID(ctx context.Context, feedID uuid.UUID, cursor *model.PageCursor, limit int) ([]*model.Article, error) {
+func (i *ArticleInteractor) ListArticlesByFeedID(
+	ctx context.Context,
+	feedID uuid.UUID,
+	cursor *model.PageCursor,
+	limit int,
+) ([]*model.Article, error) {
 	const op = "ArticleInteractor.ListArticlesByFeedID"
 
 	articles, err := i.articleRepo.ListArticlesByFeedID(ctx, feedID, cursor, limit)
@@ -37,7 +42,11 @@ func (i *ArticleInteractor) ListArticlesByFeedID(ctx context.Context, feedID uui
 }
 
 // ListArticles returns articles starting after cursor (nil = first page).
-func (i *ArticleInteractor) ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error) {
+func (i *ArticleInteractor) ListArticles(
+	ctx context.Context,
+	cursor *model.PageCursor,
+	limit int,
+) ([]*model.Article, error) {
 	const op = "ArticleInteractor.ListArticles"
 
 	articles, err := i.articleRepo.ListArticles(ctx, cursor, limit)
