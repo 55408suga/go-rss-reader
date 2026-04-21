@@ -144,17 +144,6 @@ func (fh *FeedHandler) RefreshFeed(c *echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-// RefreshAllFeeds refreshes all feeds.
-func (fh *FeedHandler) RefreshAllFeeds(c *echo.Context) error {
-	const op = "FeedHandler.RefreshAllFeeds"
-
-	if err := fh.feedUsecase.RefreshAllFeeds(c.Request().Context()); err != nil {
-		return apperror.Wrap(err, op)
-	}
-
-	return c.NoContent(http.StatusNoContent)
-}
-
 // DeleteFeed deletes a feed by ID.
 func (fh *FeedHandler) DeleteFeed(c *echo.Context) error {
 	const op = "FeedHandler.DeleteFeed"

@@ -132,22 +132,6 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 	return nil
 }
 
-// RefreshAllFeeds refreshes all registered feeds and their articles.
-func (i *FeedInteractor) RefreshAllFeeds(ctx context.Context) error {
-	const op = "FeedInteractor.RefreshAllFeeds"
-
-	feeds, err := i.feedRepo.ListFeeds(ctx, nil, 10_000)
-	if err != nil {
-		return apperror.Wrap(err, op+".GetAllFeeds")
-	}
-	for _, feed := range feeds {
-		if err := i.RefreshFeed(ctx, feed.ID); err != nil {
-			return apperror.Wrap(err, op)
-		}
-	}
-	return nil
-}
-
 // DeleteFeed deletes a feed by its ID.
 func (i *FeedInteractor) DeleteFeed(ctx context.Context, feedID uuid.UUID) error {
 	const op = "FeedInteractor.DeleteFeed"

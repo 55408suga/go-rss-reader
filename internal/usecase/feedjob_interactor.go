@@ -74,23 +74,22 @@ func (i *FeedJobInteractor) RefreshDueFeeds(ctx context.Context) error {
 	}
 	logger.InfoContext(ctx, "refreshing due feeds", "count", len(dueFeeds))
 
-	g, gCtx := errgroup.WithContext(ctx)
+	var g errgroup.Group
 	g.SetLimit(refreshDueConcurrency)
 
 	for _, feed := range dueFeeds {
 		g.Go(func() error {
-			if err := i.refreshOne(gCtx, feed); err != nil {
-				logger.WarnContext(gCtx, "failed to refresh feed",
+			if err := i.refreshOne(ctx, feed); err != nil {
+				logger.WarnContext(ctx, "failed to refresh feed",
 					"feed_url", feed.FeedURL,
 					"feed_id", feed.Status.FeedID,
 					"error", err,
 				)
 			}
-			// Always return nil: one feed's failure must not cancel other workers via errgroup.
 			return nil
 		})
 	}
-	_ = g.Wait()
+	g.Wait()
 
 	return ctx.Err()
 }

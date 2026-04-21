@@ -68,13 +68,14 @@ func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	}
 
 	return &model.Feed{
-		ID:          feed.ID,
-		Title:       feed.Title,
-		UpdatedAt:   feed.UpdatedAt,
-		FeedURL:     feed.FeedUrl,
-		WebsiteURL:  feed.WebsiteUrl,
-		Description: feed.Description,
-		Language:    feed.Language,
+		ID:           feed.ID,
+		Title:        feed.Title,
+		RegisteredAt: feed.RegisteredAt,
+		UpdatedAt:    feed.UpdatedAt,
+		FeedURL:      feed.FeedUrl,
+		WebsiteURL:   feed.WebsiteUrl,
+		Description:  feed.Description,
+		Language:     feed.Language,
 	}, nil
 }
 
@@ -102,13 +103,14 @@ func (r *FeedRepository) ListFeeds(ctx context.Context, cursor *model.PageCursor
 	feedModels := make([]*model.Feed, 0, len(rawFeeds))
 	for _, feed := range rawFeeds {
 		feedModels = append(feedModels, &model.Feed{
-			ID:          feed.ID,
-			Title:       feed.Title,
-			UpdatedAt:   feed.UpdatedAt,
-			FeedURL:     feed.FeedUrl,
-			WebsiteURL:  feed.WebsiteUrl,
-			Description: feed.Description,
-			Language:    feed.Language,
+			ID:           feed.ID,
+			Title:        feed.Title,
+			RegisteredAt: feed.RegisteredAt,
+			UpdatedAt:    feed.UpdatedAt,
+			FeedURL:      feed.FeedUrl,
+			WebsiteURL:   feed.WebsiteUrl,
+			Description:  feed.Description,
+			Language:     feed.Language,
 		})
 	}
 	return feedModels, nil

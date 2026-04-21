@@ -23,7 +23,6 @@ type FeedUsecase interface {
 	GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error)
 	ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error)
 	RefreshFeed(ctx context.Context, feedID uuid.UUID) error
-	RefreshAllFeeds(ctx context.Context) error
 	DeleteFeed(ctx context.Context, feedID uuid.UUID) error
 }
 

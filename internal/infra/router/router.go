@@ -16,7 +16,6 @@ func SetupRoutes(e *echo.Echo, components *di.ApplicationComponents) {
 	v1.GET("/feeds", components.FeedHandler.ListFeeds)
 	v1.GET("/feeds/:id", components.FeedHandler.GetFeedByID)
 	v1.POST("/feeds/:id/refresh", components.FeedHandler.RefreshFeed)
-	v1.POST("/feeds/refresh", components.FeedHandler.RefreshAllFeeds)
 	v1.DELETE("/feeds/:id", components.FeedHandler.DeleteFeed)
 
 	// Article routes
