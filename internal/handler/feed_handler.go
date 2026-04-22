@@ -4,11 +4,11 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
-	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/usecase"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -24,6 +24,13 @@ type FeedHandler struct {
 // RegisterFeedRequest is the payload for registering a feed URL.
 type RegisterFeedRequest struct {
 	FeedURL string `json:"feed_url" validate:"required,url"`
+}
+
+// ListFeedsRequest is the query params for listing feeds with pagination.
+type ListFeedsRequest struct {
+	CursorAt *time.Time `query:"cursor_at"` // RFC3339 timestamp
+	CursorID *uuid.UUID `query:"cursor_id"` // UUID
+	Limit    int        `query:"limit" validate:"gte=1,lte=100"`
 }
 
 // RegisterFeedResponse is the response payload after feed registration.
@@ -49,25 +56,21 @@ func NewFeedHandler(feedUsecase usecase.FeedUsecase, logger *slog.Logger) *FeedH
 // RegisterFeed validates and registers a feed with its current articles.
 func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
 	const op = "FeedHandler.RegisterFeed"
+	ctx := c.Request().Context()
+	logger := applogger.WithContext(ctx, fh.logger)
 
 	var req RegisterFeedRequest
 	if err := c.Bind(&req); err != nil {
-		applogger.WithContext(c.Request().Context(), fh.logger).WarnContext(c.Request().Context(),
-			"invalid request body",
-			"error", err,
-		)
+		logger.WarnContext(ctx, "invalid request body", "error", err)
 		return apperror.NewInvalidArgument(op, "invalid request body", err)
 	}
 
 	if err := requestValidator.Struct(req); err != nil {
-		applogger.WithContext(c.Request().Context(), fh.logger).WarnContext(c.Request().Context(),
-			"request validation failed",
-			"error", err,
-		)
+		logger.WarnContext(ctx, "request validation failed", "error", err)
 		return apperror.NewInvalidArgument(op, "validation failed", err)
 	}
 
-	feed, articles, err := fh.feedUsecase.RegisterFeed(c.Request().Context(), req.FeedURL)
+	feed, articles, err := fh.feedUsecase.RegisterFeed(ctx, req.FeedURL)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
@@ -82,33 +85,33 @@ func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
 // Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
 func (fh *FeedHandler) ListFeeds(c *echo.Context) error {
 	const op = "FeedHandler.ListFeeds"
+	ctx := c.Request().Context()
+	logger := applogger.WithContext(ctx, fh.logger)
 
-	cursor := parseCursorFromQuery(c)
-	feeds, err := fh.feedUsecase.ListFeeds(c.Request().Context(), cursor, 50)
+	var req ListFeedsRequest
+	if err := c.Bind(&req); err != nil {
+		logger.WarnContext(ctx, "invalid query params", "error", err)
+		return apperror.NewInvalidArgument(op, "invalid query params", err)
+	}
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+	if err := requestValidator.Struct(req); err != nil {
+		logger.WarnContext(ctx, "request validation failed", "error", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err)
+	}
+
+	var cursor *model.PageCursor
+	if req.CursorAt != nil && req.CursorID != nil {
+		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
+	}
+
+	feeds, err := fh.feedUsecase.ListFeeds(ctx, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
 	return c.JSON(http.StatusOK, feeds)
-}
-
-// parseCursorFromQuery extracts a PageCursor from cursor_at and cursor_id query params.
-// Returns nil if either param is absent or invalid.
-func parseCursorFromQuery(c *echo.Context) *model.PageCursor {
-	rawAt := c.QueryParam("cursor_at")
-	rawID := c.QueryParam("cursor_id")
-	if rawAt == "" || rawID == "" {
-		return nil
-	}
-	at, err := time.Parse(time.RFC3339, rawAt)
-	if err != nil {
-		return nil
-	}
-	id, err := uuid.Parse(rawID)
-	if err != nil {
-		return nil
-	}
-	return &model.PageCursor{At: at, ID: id}
 }
 
 // GetFeedByID returns a single feed by ID.
