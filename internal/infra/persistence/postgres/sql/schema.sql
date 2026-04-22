@@ -1,6 +1,6 @@
 CREATE TABLE feeds (
     id UUID PRIMARY KEY,
-    title varchar(100) NOT NULL,
+    title text NOT NULL,
     registered_at timestamp WITH time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp WITH time zone NOT NULL,
     feed_url varchar(2048) NOT NULL UNIQUE,
@@ -11,7 +11,7 @@ CREATE TABLE feeds (
 
 CREATE TABLE articles (
     id UUID PRIMARY KEY,
-    title varchar(100) NOT NULL,
+    title text NOT NULL,
     description text NOT NULL DEFAULT '',
     published_at timestamp WITH time zone NOT NULL,
     website_url varchar(2048) NOT NULL,
