@@ -87,12 +87,12 @@ func (ah *ArticleHandler) ListArticles(c *echo.Context) error {
 		logger.WarnContext(ctx, "invalid query params", "error", err)
 		return apperror.NewInvalidArgument(op, "invalid query params", err)
 	}
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
 		return apperror.NewInvalidArgument(op, "validation failed", err)
-	}
-	if req.Limit == 0 {
-		req.Limit = 10
 	}
 	var cursor *model.PageCursor
 	if req.CursorAt != nil && req.CursorID != nil {
