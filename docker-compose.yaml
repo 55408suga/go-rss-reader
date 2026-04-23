@@ -1,7 +1,8 @@
 services:
-  app:
-    build: .
-    container_name: rss_reader_app
+  backend:
+    build: 
+      context: ./backend
+    container_name: rss_reader_backend
     ports:
       - "8080:8080"
     env_file: .env
@@ -10,7 +11,7 @@ services:
       GOMODCACHE: /go/pkg/mod
       GOCACHE: /root/.cache/go-build
     volumes:
-      - .:/app
+      - ./backend:/app
       - /app/tmp
       - go-mod-cache:/go/pkg/mod
       - go-build-cache:/root/.cache/go-build
