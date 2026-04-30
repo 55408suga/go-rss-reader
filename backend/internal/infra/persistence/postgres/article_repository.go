@@ -129,7 +129,11 @@ func (r *ArticleRepository) ListArticlesByFeedID(
 
 // ListArticles retrieves articles ordered by publish time.
 // If cursor is non-nil, results start after the given position (keyset pagination).
-func (r *ArticleRepository) ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error) {
+func (r *ArticleRepository) ListArticles(
+	ctx context.Context,
+	cursor *model.PageCursor,
+	limit int,
+) ([]*model.Article, error) {
 	const op = "ArticleRepository.ListArticles"
 
 	var rawArticles []generated.Article
@@ -165,6 +169,7 @@ func (r *ArticleRepository) ListArticles(ctx context.Context, cursor *model.Page
 }
 
 // UpdateArticle updates an existing article.
+// Now not used in the application, but implemented for completeness and potential future use.
 func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Article) error {
 	const op = "ArticleRepository.UpdateArticle"
 
@@ -186,6 +191,7 @@ func (r *ArticleRepository) UpdateArticle(ctx context.Context, article *model.Ar
 }
 
 // DeleteArticle removes an article by ID.
+// Now not used in the application, but implemented for completeness and potential future use.
 func (r *ArticleRepository) DeleteArticle(ctx context.Context, articleID uuid.UUID) error {
 	const op = "ArticleRepository.DeleteArticle"
 

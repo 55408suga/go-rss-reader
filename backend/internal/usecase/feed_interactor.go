@@ -44,11 +44,7 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 		return nil, nil, apperror.Wrap(err, op)
 	}
 
-	cursor := model.FeedCursor{}
-	if feedCursor != nil {
-		cursor = *feedCursor
-	}
-	fetchStatus := model.NewFetchStatus(feed.ID, cursor)
+	fetchStatus := model.NewFetchStatus(feed.ID, *feedCursor)
 
 	err = i.txManager.WithTransaction(ctx, func(txCtx context.Context) error {
 		if err := i.feedRepo.SaveFeed(txCtx, feed); err != nil {
@@ -107,11 +103,13 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 		return apperror.Wrap(err, op+".GetFeedByID")
 	}
 
-	feed, articles, _, err := i.fetcher.FetchNewFeed(ctx, currentFeed.FeedURL)
+	feed, articles, feedCursor, err := i.fetcher.FetchNewFeed(ctx, currentFeed.FeedURL)
 	if err != nil {
-		return apperror.Wrap(err, op+".FetchFeedWithArticles")
+		return apperror.Wrap(err, op+".FetchNewFeed")
 	}
+	// overwrite feed ID
 	feed.ID = currentFeed.ID
+	fetchStatus := model.NewFetchStatus(feed.ID, *feedCursor)
 
 	err = i.txManager.WithTransaction(ctx, func(txCtx context.Context) error {
 		if err := i.feedRepo.UpdateFeed(txCtx, feed); err != nil {
@@ -122,6 +120,9 @@ func (i *FeedInteractor) RefreshFeed(ctx context.Context, feedID uuid.UUID) erro
 			if err := i.articleRepo.SaveArticle(txCtx, article); err != nil {
 				return apperror.Wrap(err, op+".SaveArticle")
 			}
+		}
+		if err := i.feedStatusRepo.SaveFetchStatus(txCtx, fetchStatus); err != nil {
+			return apperror.Wrap(err, op+".SaveFetchStatus")
 		}
 		return nil
 	})

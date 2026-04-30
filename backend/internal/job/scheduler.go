@@ -1,3 +1,5 @@
+// Package job provides a periodic background job scheduler used to
+// refresh due feeds at configured intervals.
 package job
 
 import (
@@ -13,7 +15,7 @@ type Job struct {
 	Name     string
 	Interval time.Duration
 	Timeout  time.Duration
-	Fnc      func(ctx context.Context) error
+	Func     func(ctx context.Context) error
 }
 
 // Scheduler executes periodic background jobs.
@@ -41,6 +43,14 @@ func (s *Scheduler) Add(j Job) {
 func (s *Scheduler) Start(ctx context.Context) {
 	for _, j := range s.jobs {
 		s.wg.Go(func() {
+			defer func() {
+				if r := recover(); r != nil {
+					applogger.WithContext(ctx, s.logger).ErrorContext(ctx,
+						"job panicked and stopped",
+						"job", j.Name,
+						"error", r)
+				}
+			}()
 			s.runJob(ctx, j)
 		})
 	}
@@ -76,7 +86,7 @@ func (s *Scheduler) executeJob(ctx context.Context, j Job) {
 	jobCtx, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 
-	if err := j.Fnc(jobCtx); err != nil {
+	if err := j.Func(jobCtx); err != nil {
 		jobLogger.ErrorContext(ctx,
 			"job failed",
 			"error", err,

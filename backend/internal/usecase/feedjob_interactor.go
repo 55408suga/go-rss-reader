@@ -79,6 +79,15 @@ func (i *FeedJobInteractor) RefreshDueFeeds(ctx context.Context) error {
 
 	for _, feed := range dueFeeds {
 		g.Go(func() error {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.ErrorContext(ctx, "refreshOne panicked",
+						"feed_url", feed.FeedURL,
+						"feed_id", feed.Status.FeedID,
+						"error", r,
+					)
+				}
+			}()
 			if err := i.refreshOne(ctx, feed); err != nil {
 				logger.WarnContext(ctx, "failed to refresh feed",
 					"feed_url", feed.FeedURL,

@@ -49,7 +49,7 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 	feedURL string,
 	feedCursor *model.FeedCursor,
 ) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
-	const op = "RSSGateway.FetchFeedWithArticles"
+	const op = "RSSGateway.FetchFeedWithCursor"
 	startedAt := time.Now()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
@@ -94,7 +94,8 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 			"duration_ms", time.Since(startedAt).Milliseconds(),
 		)
 		return nil, nil, feedCursor, nil
-	} else if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		wrapped := apperror.NewExternalUnavailable(
 			op,
 			fmt.Sprintf("rss feed returned status %d", resp.StatusCode),
@@ -181,7 +182,7 @@ func (rg *RSSGateway) FetchNewFeed(
 	return rg.FetchFeedWithCursor(ctx, feedURL, nil)
 }
 
-// 以下util後でまとめを検討
+// TODO: 共通utilsとして切り出すかもしれない
 func resolveExternalID(item *gofeed.Item, publishedAt time.Time) string {
 	if guid := strings.TrimSpace(item.GUID); guid != "" {
 		return guid

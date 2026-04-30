@@ -61,7 +61,7 @@ func main() {
 		Name:     "refresh-due-feeds",
 		Interval: 10 * time.Minute,
 		Timeout:  5 * time.Minute,
-		Fnc:      components.FeedJobUC.RefreshDueFeeds,
+		Func:     components.FeedJobUC.RefreshDueFeeds,
 	})
 	scheduler.Start(ctx)
 

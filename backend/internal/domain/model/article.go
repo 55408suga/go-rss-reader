@@ -1,4 +1,3 @@
-// Package model provides domain model for RSS reader
 package model
 
 import (

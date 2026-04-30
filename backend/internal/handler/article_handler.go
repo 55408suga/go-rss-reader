@@ -38,10 +38,10 @@ func NewArticleHandler(articleUsecase usecase.ArticleUsecase, logger *slog.Logge
 
 // ListArticlesByFeedID returns articles for a feed.
 // Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
-func (ah *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
+func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 	const op = "ArticleHandler.ListArticlesByFeedID"
 	ctx := c.Request().Context()
-	logger := applogger.WithContext(ctx, ah.logger)
+	logger := applogger.WithContext(ctx, h.logger)
 
 	feedID, err := uuid.Parse(c.Param("feed_id"))
 	if err != nil {
@@ -67,7 +67,7 @@ func (ah *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
 	}
 
-	articles, err := ah.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
+	articles, err := h.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
@@ -77,10 +77,10 @@ func (ah *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 
 // ListArticles returns articles.
 // Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
-func (ah *ArticleHandler) ListArticles(c *echo.Context) error {
+func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 	const op = "ArticleHandler.ListArticles"
 	ctx := c.Request().Context()
-	logger := applogger.WithContext(ctx, ah.logger)
+	logger := applogger.WithContext(ctx, h.logger)
 
 	var req ListArticlesRequest
 	if err := c.Bind(&req); err != nil {
@@ -99,7 +99,7 @@ func (ah *ArticleHandler) ListArticles(c *echo.Context) error {
 		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
 	}
 
-	articles, err := ah.articleUsecase.ListArticles(ctx, cursor, req.Limit)
+	articles, err := h.articleUsecase.ListArticles(ctx, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}

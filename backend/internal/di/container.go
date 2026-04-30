@@ -14,8 +14,8 @@ import (
 
 // ApplicationComponents holds fully wired application entry-point dependencies.
 type ApplicationComponents struct {
-	FeedHandler    handler.FeedHandler
-	ArticleHandler handler.ArticleHandler
+	FeedHandler    *handler.FeedHandler
+	ArticleHandler *handler.ArticleHandler
 	FeedJobUC      usecase.FeedJobUsecase
 	close          func() error
 }
@@ -54,8 +54,8 @@ func NewApplicationComponents(cfg *config.Config, logger *slog.Logger) (*Applica
 	articleHandler := handler.NewArticleHandler(articleUC, logger)
 
 	return &ApplicationComponents{
-		FeedHandler:    *feedHandler,
-		ArticleHandler: *articleHandler,
+		FeedHandler:    feedHandler,
+		ArticleHandler: articleHandler,
 		FeedJobUC:      feedJobUC,
 		close:          func() error { db.Close(); return nil },
 	}, nil

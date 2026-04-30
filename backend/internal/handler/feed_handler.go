@@ -54,10 +54,10 @@ func NewFeedHandler(feedUsecase usecase.FeedUsecase, logger *slog.Logger) *FeedH
 }
 
 // RegisterFeed validates and registers a feed with its current articles.
-func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
+func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 	const op = "FeedHandler.RegisterFeed"
 	ctx := c.Request().Context()
-	logger := applogger.WithContext(ctx, fh.logger)
+	logger := applogger.WithContext(ctx, h.logger)
 
 	var req RegisterFeedRequest
 	if err := c.Bind(&req); err != nil {
@@ -70,7 +70,7 @@ func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "validation failed", err)
 	}
 
-	feed, articles, err := fh.feedUsecase.RegisterFeed(ctx, req.FeedURL)
+	feed, articles, err := h.feedUsecase.RegisterFeed(ctx, req.FeedURL)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
@@ -83,10 +83,10 @@ func (fh *FeedHandler) RegisterFeed(c *echo.Context) error {
 
 // ListFeeds returns registered feeds.
 // Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
-func (fh *FeedHandler) ListFeeds(c *echo.Context) error {
+func (h *FeedHandler) ListFeeds(c *echo.Context) error {
 	const op = "FeedHandler.ListFeeds"
 	ctx := c.Request().Context()
-	logger := applogger.WithContext(ctx, fh.logger)
+	logger := applogger.WithContext(ctx, h.logger)
 
 	var req ListFeedsRequest
 	if err := c.Bind(&req); err != nil {
@@ -106,7 +106,7 @@ func (fh *FeedHandler) ListFeeds(c *echo.Context) error {
 		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
 	}
 
-	feeds, err := fh.feedUsecase.ListFeeds(ctx, cursor, req.Limit)
+	feeds, err := h.feedUsecase.ListFeeds(ctx, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
@@ -115,7 +115,7 @@ func (fh *FeedHandler) ListFeeds(c *echo.Context) error {
 }
 
 // GetFeedByID returns a single feed by ID.
-func (fh *FeedHandler) GetFeedByID(c *echo.Context) error {
+func (h *FeedHandler) GetFeedByID(c *echo.Context) error {
 	const op = "FeedHandler.GetFeedByID"
 
 	feedID, err := uuid.Parse(c.Param("id"))
@@ -123,7 +123,7 @@ func (fh *FeedHandler) GetFeedByID(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "invalid feed id", err)
 	}
 
-	feed, err := fh.feedUsecase.GetFeedByID(c.Request().Context(), feedID)
+	feed, err := h.feedUsecase.GetFeedByID(c.Request().Context(), feedID)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
@@ -132,7 +132,7 @@ func (fh *FeedHandler) GetFeedByID(c *echo.Context) error {
 }
 
 // RefreshFeed refreshes metadata/articles for a single feed.
-func (fh *FeedHandler) RefreshFeed(c *echo.Context) error {
+func (h *FeedHandler) RefreshFeed(c *echo.Context) error {
 	const op = "FeedHandler.RefreshFeed"
 
 	feedID, err := uuid.Parse(c.Param("id"))
@@ -140,7 +140,7 @@ func (fh *FeedHandler) RefreshFeed(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "invalid feed id", err)
 	}
 
-	if err := fh.feedUsecase.RefreshFeed(c.Request().Context(), feedID); err != nil {
+	if err := h.feedUsecase.RefreshFeed(c.Request().Context(), feedID); err != nil {
 		return apperror.Wrap(err, op)
 	}
 
@@ -148,7 +148,7 @@ func (fh *FeedHandler) RefreshFeed(c *echo.Context) error {
 }
 
 // DeleteFeed deletes a feed by ID.
-func (fh *FeedHandler) DeleteFeed(c *echo.Context) error {
+func (h *FeedHandler) DeleteFeed(c *echo.Context) error {
 	const op = "FeedHandler.DeleteFeed"
 
 	feedID, err := uuid.Parse(c.Param("id"))
@@ -156,7 +156,7 @@ func (fh *FeedHandler) DeleteFeed(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "invalid feed id", err)
 	}
 
-	err = fh.feedUsecase.DeleteFeed(c.Request().Context(), feedID)
+	err = h.feedUsecase.DeleteFeed(c.Request().Context(), feedID)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}

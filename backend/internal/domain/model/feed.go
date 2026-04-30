@@ -1,3 +1,9 @@
+// Package model defines the core domain entities for the RSS reader,
+// including Feed, Article, FetchStatus, and FeedCursor.
+//
+// Entities in this package have no outward dependencies; they are
+// constructed and consumed by the usecase layer and persisted by the
+// infra layer.
 package model
 
 import (
