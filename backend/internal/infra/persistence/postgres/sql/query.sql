@@ -2,7 +2,7 @@
 INSERT INTO feeds (
     id, title, registered_at, updated_at, feed_url, website_url, description, language
 ) VALUES (
-    $1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 );
 
 -- name: GetFeedByID :one

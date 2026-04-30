@@ -36,6 +36,18 @@ func TestGeneratedFetchStatusParamsUseInt(t *testing.T) {
 	}
 }
 
+func TestGeneratedSaveFeedParamsAcceptsRegisteredAt(t *testing.T) {
+	registeredAt := time.Date(2026, 4, 30, 9, 0, 0, 0, time.UTC)
+
+	params := generated.SaveFeedParams{
+		RegisteredAt: registeredAt,
+	}
+
+	if params.RegisteredAt != registeredAt {
+		t.Fatalf("RegisteredAt mismatch: got %v want %v", params.RegisteredAt, registeredAt)
+	}
+}
+
 func TestToFetchStatusModelPreservesGeneratedIntFields(t *testing.T) {
 	lastModified := time.Unix(1_700_000_000, 0).UTC()
 	errorMessage := "temporary failure"

@@ -42,13 +42,14 @@ func (r *FeedRepository) SaveFeed(ctx context.Context, feed *model.Feed) error {
 	const op = "FeedRepository.SaveFeed"
 
 	params := generated.SaveFeedParams{
-		ID:          feed.ID,
-		Title:       feed.Title,
-		UpdatedAt:   feed.UpdatedAt,
-		FeedUrl:     feed.FeedURL,
-		WebsiteUrl:  feed.WebsiteURL,
-		Description: feed.Description,
-		Language:    feed.Language,
+		ID:           feed.ID,
+		Title:        feed.Title,
+		RegisteredAt: feed.RegisteredAt,
+		UpdatedAt:    feed.UpdatedAt,
+		FeedUrl:      feed.FeedURL,
+		WebsiteUrl:   feed.WebsiteURL,
+		Description:  feed.Description,
+		Language:     feed.Language,
 	}
 	err := r.querier(ctx).SaveFeed(ctx, params)
 	if err != nil {

@@ -31,13 +31,16 @@ func NewFeed(title, feedURL, websiteURL, description, language string, updatedAt
 		return nil, err
 	}
 
+	registeredAt := time.Now().UTC()
+
 	return &Feed{
-		ID:          id,
-		Title:       title,
-		FeedURL:     feedURL,
-		WebsiteURL:  websiteURL,
-		Description: description,
-		Language:    language,
-		UpdatedAt:   updatedAt,
+		ID:           id,
+		Title:        title,
+		FeedURL:      feedURL,
+		WebsiteURL:   websiteURL,
+		Description:  description,
+		RegisteredAt: registeredAt,
+		Language:     language,
+		UpdatedAt:    updatedAt,
 	}, nil
 }

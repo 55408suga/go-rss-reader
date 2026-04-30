@@ -451,24 +451,26 @@ const saveFeed = `-- name: SaveFeed :exec
 INSERT INTO feeds (
     id, title, registered_at, updated_at, feed_url, website_url, description, language
 ) VALUES (
-    $1, $2, CURRENT_TIMESTAMP, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 `
 
 type SaveFeedParams struct {
-	ID          uuid.UUID
-	Title       string
-	UpdatedAt   time.Time
-	FeedUrl     string
-	WebsiteUrl  string
-	Description string
-	Language    string
+	ID           uuid.UUID
+	Title        string
+	RegisteredAt time.Time
+	UpdatedAt    time.Time
+	FeedUrl      string
+	WebsiteUrl   string
+	Description  string
+	Language     string
 }
 
 func (q *Queries) SaveFeed(ctx context.Context, arg SaveFeedParams) error {
 	_, err := q.db.Exec(ctx, saveFeed,
 		arg.ID,
 		arg.Title,
+		arg.RegisteredAt,
 		arg.UpdatedAt,
 		arg.FeedUrl,
 		arg.WebsiteUrl,
