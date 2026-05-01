@@ -1,41 +1,50 @@
-version: 2
-
+version: "2"
 run:
-  timeout: 5m
   tests: true
-
 linters:
-  disable-all: true
+  default: none
   enable:
-    - govet
     - errcheck
-    - staticcheck
-    - unused
-    - ineffassign
-
-    - revive
+    - errname
     - errorlint
     - gocritic
     - gosec
-    - errname
+    - govet
+    - ineffassign
     - lll
-
-linters-settings:
-  lll:
-    line-length: 120
-    tab-width: 4
-    exclude: "^//|http[s]?://"
-
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
+    - revive
+    - staticcheck
+    - unused
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    lll:
+      line-length: 120
+      tab-width: 4
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
