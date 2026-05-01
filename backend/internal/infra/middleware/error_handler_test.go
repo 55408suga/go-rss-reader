@@ -27,7 +27,7 @@ func TestGlobalErrorHandlerAppError(t *testing.T) {
 	e := echo.New()
 	handler := NewGlobalErrorHandler(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	req.Header.Set(echo.HeaderXRequestID, "req-1")
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -60,7 +60,7 @@ func TestGlobalErrorHandlerEchoHTTPError(t *testing.T) {
 	e := echo.New()
 	handler := NewGlobalErrorHandler(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -84,7 +84,7 @@ func TestGlobalErrorHandlerUnknownError(t *testing.T) {
 	e := echo.New()
 	handler := NewGlobalErrorHandler(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 

@@ -100,28 +100,30 @@ func (r *ArticleRepository) ListArticlesByFeedID(
 			Limit:  limit,
 		})
 	} else {
-		rawArticles, err = r.querier(ctx).ListArticlesByFeedIDFromCursor(ctx, generated.ListArticlesByFeedIDFromCursorParams{
+		params := generated.ListArticlesByFeedIDFromCursorParams{
 			FeedID:   feedID,
 			CursorAt: cursor.At,
 			CursorID: cursor.ID,
 			Limit:    limit,
-		})
+		}
+		rawArticles, err = r.querier(ctx).ListArticlesByFeedIDFromCursor(ctx, params)
 	}
 	if err != nil {
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
 	articleModels := make([]*model.Article, 0, len(rawArticles))
-	for _, article := range rawArticles {
+	for i := range rawArticles {
+		a := &rawArticles[i]
 		articleModels = append(articleModels, newArticleModel(
-			article.ID,
-			article.Title,
-			article.Description,
-			article.PublishedAt,
-			article.WebsiteUrl,
-			article.Content,
-			article.FeedID,
-			article.ExternalID,
+			a.ID,
+			a.Title,
+			a.Description,
+			a.PublishedAt,
+			a.WebsiteUrl,
+			a.Content,
+			a.FeedID,
+			a.ExternalID,
 		))
 	}
 	return articleModels, nil
@@ -153,16 +155,17 @@ func (r *ArticleRepository) ListArticles(
 	}
 
 	articleModels := make([]*model.Article, 0, len(rawArticles))
-	for _, article := range rawArticles {
+	for i := range rawArticles {
+		a := &rawArticles[i]
 		articleModels = append(articleModels, newArticleModel(
-			article.ID,
-			article.Title,
-			article.Description,
-			article.PublishedAt,
-			article.WebsiteUrl,
-			article.Content,
-			article.FeedID,
-			article.ExternalID,
+			a.ID,
+			a.Title,
+			a.Description,
+			a.PublishedAt,
+			a.WebsiteUrl,
+			a.Content,
+			a.FeedID,
+			a.ExternalID,
 		))
 	}
 	return articleModels, nil

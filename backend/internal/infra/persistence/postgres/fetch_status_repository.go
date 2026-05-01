@@ -71,7 +71,7 @@ func (r *FetchStatusRepository) GetFetchStatusByFeedID(
 		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
 	}
 
-	return toFetchStatusModel(status), nil
+	return toFetchStatusModel(&status), nil
 }
 
 // GetDueFeeds retrieves feeds (with current fetch status) that are due for refresh.
@@ -91,13 +91,13 @@ func (r *FetchStatusRepository) GetDueFeeds(
 	}
 
 	dueFeeds := make([]*model.DueFeed, 0, len(rows))
-	for _, row := range rows {
-		dueFeeds = append(dueFeeds, toDueFeedModel(row))
+	for i := range rows {
+		dueFeeds = append(dueFeeds, toDueFeedModel(&rows[i]))
 	}
 	return dueFeeds, nil
 }
 
-func toFetchStatusModel(status generated.FeedFetchStatus) *model.FetchStatus {
+func toFetchStatusModel(status *generated.FeedFetchStatus) *model.FetchStatus {
 	return &model.FetchStatus{
 		FeedID:        status.FeedID,
 		LastFetchedAt: status.LastFetchedAt,
@@ -113,7 +113,7 @@ func toFetchStatusModel(status generated.FeedFetchStatus) *model.FetchStatus {
 	}
 }
 
-func toDueFeedModel(row generated.GetDueFeedFetchStatusesRow) *model.DueFeed {
+func toDueFeedModel(row *generated.GetDueFeedFetchStatusesRow) *model.DueFeed {
 	return &model.DueFeed{
 		FeedURL: row.FeedUrl,
 		Status: &model.FetchStatus{

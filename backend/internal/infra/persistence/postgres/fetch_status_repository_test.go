@@ -67,7 +67,7 @@ func TestToFetchStatusModelPreservesGeneratedIntFields(t *testing.T) {
 		FailureCount:       4,
 	}
 
-	got := toFetchStatusModel(status)
+	got := toFetchStatusModel(&status)
 
 	if got.StatusCode != status.StatusCode {
 		t.Fatalf("StatusCode mismatch: got %d want %d", got.StatusCode, status.StatusCode)

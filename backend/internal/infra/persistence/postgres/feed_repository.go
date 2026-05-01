@@ -102,16 +102,17 @@ func (r *FeedRepository) ListFeeds(ctx context.Context, cursor *model.PageCursor
 	}
 
 	feedModels := make([]*model.Feed, 0, len(rawFeeds))
-	for _, feed := range rawFeeds {
+	for i := range rawFeeds {
+		f := &rawFeeds[i]
 		feedModels = append(feedModels, &model.Feed{
-			ID:           feed.ID,
-			Title:        feed.Title,
-			RegisteredAt: feed.RegisteredAt,
-			UpdatedAt:    feed.UpdatedAt,
-			FeedURL:      feed.FeedUrl,
-			WebsiteURL:   feed.WebsiteUrl,
-			Description:  feed.Description,
-			Language:     feed.Language,
+			ID:           f.ID,
+			Title:        f.Title,
+			RegisteredAt: f.RegisteredAt,
+			UpdatedAt:    f.UpdatedAt,
+			FeedURL:      f.FeedUrl,
+			WebsiteURL:   f.WebsiteUrl,
+			Description:  f.Description,
+			Language:     f.Language,
 		})
 	}
 	return feedModels, nil
