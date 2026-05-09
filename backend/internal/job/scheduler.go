@@ -5,10 +5,11 @@ package job
 import (
 	"context"
 	"log/slog"
-	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/applog"
 	"sync"
 	"time"
+
+	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
 )
 
 // Job defines a periodic unit of work.

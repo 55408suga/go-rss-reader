@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+
 	"rss_reader/internal/handler"
 	"rss_reader/internal/infra/config"
 	"rss_reader/internal/infra/gateway"

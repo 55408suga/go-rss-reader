@@ -3,9 +3,10 @@ package repository
 
 import (
 	"context"
-	"rss_reader/internal/domain/model"
 
 	"github.com/google/uuid"
+
+	"rss_reader/internal/domain/model"
 )
 
 // FeedRepository defines the interface for feed repository.

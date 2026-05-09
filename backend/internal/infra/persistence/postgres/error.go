@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/applog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
 )
 
 func classifyDBError(err error, op string) *apperror.AppError {

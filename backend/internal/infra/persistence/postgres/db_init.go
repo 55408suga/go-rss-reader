@@ -3,10 +3,11 @@ package postgres
 
 import (
 	"context"
-	"rss_reader/internal/apperror"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"rss_reader/internal/apperror"
 )
 
 // NewDB creates a new database connection pool.

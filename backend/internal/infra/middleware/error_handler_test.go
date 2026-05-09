@@ -7,10 +7,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"rss_reader/internal/apperror"
 	"testing"
 
 	"github.com/labstack/echo/v5"
+
+	"rss_reader/internal/apperror"
 )
 
 type errorResponseForTest struct {

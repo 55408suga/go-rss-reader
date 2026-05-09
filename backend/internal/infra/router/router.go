@@ -2,9 +2,9 @@
 package router
 
 import (
-	"rss_reader/internal/di"
-
 	"github.com/labstack/echo/v5"
+
+	"rss_reader/internal/di"
 )
 
 // SetupRoutes registers API routes.

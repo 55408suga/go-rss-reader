@@ -5,10 +5,11 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"rss_reader/internal/apperror"
-	"rss_reader/internal/applog"
 
 	"github.com/labstack/echo/v5"
+
+	"rss_reader/internal/apperror"
+	"rss_reader/internal/applog"
 )
 
 type errorResponse struct {

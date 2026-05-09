@@ -2,11 +2,12 @@ package usecase
 
 import (
 	"context"
+
+	"github.com/google/uuid"
+
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/domain/repository"
-
-	"github.com/google/uuid"
 )
 
 // FeedInteractor implements FeedUsecase interface.

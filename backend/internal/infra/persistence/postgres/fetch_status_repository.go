@@ -5,11 +5,11 @@ import (
 	"log/slog"
 	"time"
 
-	"rss_reader/internal/domain/model"
-	"rss_reader/internal/infra/persistence/postgres/generated"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"rss_reader/internal/domain/model"
+	"rss_reader/internal/infra/persistence/postgres/generated"
 )
 
 // FetchStatusRepository is a PostgreSQL-backed fetch status repository implementation.

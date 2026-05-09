@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"rss_reader/internal/applog"
-
 	"github.com/labstack/echo/v5"
+
+	"rss_reader/internal/applog"
 )
 
 // RequestIDContext adds request_id to context so downstream logs can correlate events.

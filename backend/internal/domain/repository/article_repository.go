@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
-	"rss_reader/internal/domain/model"
 
 	"github.com/google/uuid"
+
+	"rss_reader/internal/domain/model"
 )
 
 // ArticleRepository defines the interface for article repository.

@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/applog"
-	"rss_reader/internal/domain/model"
 	"strings"
 	"time"
 
 	"github.com/mmcdole/gofeed"
+
+	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
+	"rss_reader/internal/domain/model"
 )
 
 // RSSGateway fetches and parses remote RSS feeds.
@@ -52,7 +53,7 @@ func (rg *RSSGateway) FetchFeedWithCursor(
 	const op = "RSSGateway.FetchFeedWithCursor"
 	startedAt := time.Now()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, http.NoBody)
 	if err != nil {
 		return nil, nil, nil, apperror.NewInvalidArgument(op, "invalid feed url", err)
 	}

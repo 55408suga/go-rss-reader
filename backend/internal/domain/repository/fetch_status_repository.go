@@ -2,10 +2,11 @@ package repository
 
 import (
 	"context"
-	"rss_reader/internal/domain/model"
 	"time"
 
 	"github.com/google/uuid"
+
+	"rss_reader/internal/domain/model"
 )
 
 // FetchStatusRepository defines persistence operations for fetch status records.

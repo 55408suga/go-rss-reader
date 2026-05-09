@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"rss_reader/internal/infra/persistence/postgres/generated"
-
 	"github.com/google/uuid"
+
+	"rss_reader/internal/infra/persistence/postgres/generated"
 )
 
 func TestGeneratedFetchStatusParamsUseInt(t *testing.T) {

@@ -3,13 +3,14 @@ package usecase
 import (
 	"context"
 	"log/slog"
+	"time"
+
+	"golang.org/x/sync/errgroup"
+
 	"rss_reader/internal/apperror"
 	applogger "rss_reader/internal/applog"
 	"rss_reader/internal/domain/model"
 	"rss_reader/internal/domain/repository"
-	"time"
-
-	"golang.org/x/sync/errgroup"
 )
 
 const (

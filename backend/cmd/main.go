@@ -8,17 +8,18 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
+
 	"rss_reader/internal/di"
 	"rss_reader/internal/infra/config"
 	applogger "rss_reader/internal/infra/logger"
 	appmiddleware "rss_reader/internal/infra/middleware"
 	"rss_reader/internal/infra/router"
 	"rss_reader/internal/job"
-	"syscall"
-	"time"
-
-	"github.com/labstack/echo/v5"
-	"github.com/labstack/echo/v5/middleware"
 )
 
 func main() {

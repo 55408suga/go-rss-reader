@@ -4,11 +4,11 @@ import (
 	"context"
 	"log/slog"
 
-	"rss_reader/internal/domain/model"
-	"rss_reader/internal/infra/persistence/postgres/generated"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"rss_reader/internal/domain/model"
+	"rss_reader/internal/infra/persistence/postgres/generated"
 )
 
 // FeedRepository is a PostgreSQL-backed feed repository implementation.

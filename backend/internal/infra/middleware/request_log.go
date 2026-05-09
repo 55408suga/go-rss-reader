@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"log/slog"
-	"rss_reader/internal/applog"
 
 	"github.com/labstack/echo/v5"
 	echomw "github.com/labstack/echo/v5/middleware"
+
+	"rss_reader/internal/applog"
 )
 
 // RequestLogger writes structured access logs via slog.

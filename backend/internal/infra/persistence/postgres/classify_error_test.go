@@ -2,11 +2,12 @@ package postgres
 
 import (
 	"errors"
-	"rss_reader/internal/apperror"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"rss_reader/internal/apperror"
 )
 
 func TestClassifyDBErrorNotFound(t *testing.T) {

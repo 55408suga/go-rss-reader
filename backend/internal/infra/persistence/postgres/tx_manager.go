@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	applogger "rss_reader/internal/applog"
-	"rss_reader/internal/apperror"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
 )
 
 type ctxKey string

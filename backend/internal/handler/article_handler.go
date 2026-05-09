@@ -4,14 +4,15 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/applog"
-	"rss_reader/internal/domain/model"
-	"rss_reader/internal/usecase"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
+
+	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
+	"rss_reader/internal/domain/model"
+	"rss_reader/internal/usecase"
 )
 
 // ArticleHandler handles article-related HTTP requests.

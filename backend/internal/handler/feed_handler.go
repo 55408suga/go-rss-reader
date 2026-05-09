@@ -4,15 +4,16 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"rss_reader/internal/apperror"
-	applogger "rss_reader/internal/applog"
-	"rss_reader/internal/domain/model"
-	"rss_reader/internal/usecase"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
+
+	"rss_reader/internal/apperror"
+	applogger "rss_reader/internal/applog"
+	"rss_reader/internal/domain/model"
+	"rss_reader/internal/usecase"
 )
 
 // FeedHandler handles feed-related HTTP requests.
