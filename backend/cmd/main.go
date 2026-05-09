@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/labstack/echo/v5/middleware"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
-	"github.com/labstack/echo/v5/middleware"
 
 	"rss_reader/internal/di"
 	"rss_reader/internal/infra/config"
