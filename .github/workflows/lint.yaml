@@ -44,6 +44,7 @@ jobs:
                   working-directory: ${{ env.BACKEND_DIR }}
 
             - name: Check formatting
+              if: failure()
               run: |
                   diff="$(golangci-lint fmt --diff)"
                   if [ -n "$diff" ]; then
