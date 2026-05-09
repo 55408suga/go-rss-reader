@@ -5,6 +5,7 @@ package job
 import (
 	"context"
 	"log/slog"
+	"rss_reader/internal/apperror"
 	applogger "rss_reader/internal/applog"
 	"sync"
 	"time"
@@ -102,6 +103,23 @@ func (s *Scheduler) executeJob(ctx context.Context, j Job) {
 }
 
 // Shutdown waits for all running job goroutines to stop.
-func (s *Scheduler) Shutdown() {
-	s.wg.Wait()
+func (s *Scheduler) Shutdown(ctx context.Context) error {
+	const op = "Scheduler.Shutdown"
+
+	done := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return apperror.NewInternal(
+			op,
+			"scheduler shutdown timed out",
+			ctx.Err(),
+		)
+	}
 }

@@ -37,24 +37,8 @@ func main() {
 		}
 	}()
 
-	e := echo.NewWithConfig(echo.Config{
-		Logger:           logger,
-		HTTPErrorHandler: appmiddleware.NewGlobalErrorHandler(logger),
-	})
-
-	e.Use(middleware.RequestID())
-	e.Use(appmiddleware.RequestIDContext())
-	e.Use(appmiddleware.RequestLogger(logger))
-	e.Use(middleware.Recover())
-	e.Use(middleware.ContextTimeout(15 * time.Second))
-
-	router.SetupRoutes(e, components)
-	sc := echo.StartConfig{
-		Address:         ":8080",
-		GracefulTimeout: 5 * time.Second,
-	}
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	ctx, appCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer appCancel()
 
 	scheduler := job.NewJobScheduler(logger)
 	scheduler.Add(job.Job{
@@ -63,11 +47,38 @@ func main() {
 		Timeout:  5 * time.Minute,
 		Func:     components.FeedJobUC.RefreshDueFeeds,
 	})
-	scheduler.Start(ctx)
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer shutdownCancel()
+		if err := scheduler.Shutdown(shutdownCtx); err != nil {
+			logger.Error("failed to shutdown scheduler", "error", err)
+		}
+	}()
+
+	e := echo.NewWithConfig(echo.Config{
+		Logger:           logger,
+		HTTPErrorHandler: appmiddleware.NewGlobalErrorHandler(logger),
+	})
+	e.Use(middleware.RequestID())
+	e.Use(appmiddleware.RequestIDContext())
+	e.Use(appmiddleware.RequestLogger(logger))
+	e.Use(middleware.Recover())
+	e.Use(middleware.ContextTimeout(15 * time.Second))
+	router.SetupRoutes(e, components)
+
+	sc := echo.StartConfig{
+		Address:         ":8080",
+		GracefulTimeout: 5 * time.Second,
+		OnShutdownError: func(err error) {
+			logger.Error("failed to graceful shutdown", "error", err)
+		},
+		BeforeServeFunc: func(_ *http.Server) error {
+			scheduler.Start(ctx)
+			return nil
+		},
+	}
 
 	if err := sc.Start(ctx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("failed to start server", "error", err)
 	}
-
-	scheduler.Shutdown()
 }
