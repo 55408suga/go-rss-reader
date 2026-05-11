@@ -18,6 +18,6 @@
     "lefthook": "^2.1.6"
   },
   "scripts": {
-    "prepare": "lefthook install"
+    "prepare": "git config --local core.hooksPath .git/hooks && lefthook install --force"
   }
 }
