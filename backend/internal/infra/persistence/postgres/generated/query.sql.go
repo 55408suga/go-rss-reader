@@ -12,6 +12,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkFeedExistsByURL = `-- name: CheckFeedExistsByURL :one
+SELECT EXISTS(
+    SELECT 1 FROM feeds WHERE feed_url = $1
+)
+`
+
+func (q *Queries) CheckFeedExistsByURL(ctx context.Context, feedUrl string) (bool, error) {
+	row := q.db.QueryRow(ctx, checkFeedExistsByURL, feedUrl)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const deleteArticle = `-- name: DeleteArticle :exec
 DELETE FROM articles
 WHERE id = $1

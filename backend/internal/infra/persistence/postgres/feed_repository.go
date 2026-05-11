@@ -80,6 +80,18 @@ func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	}, nil
 }
 
+// CheckFeedExistsByURL reports whether a feed with the given URL exists.
+func (r *FeedRepository) CheckFeedExistsByURL(ctx context.Context, feedURL string) (bool, error) {
+	const op = "FeedRepository.CheckFeedExistsByURL"
+
+	exists, err := r.querier(ctx).CheckFeedExistsByURL(ctx, feedURL)
+	if err != nil {
+		return false, wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return exists, nil
+}
+
 // ListFeeds retrieves feeds ordered by registration date.
 // If cursor is non-nil, results start after the given position (keyset pagination).
 func (r *FeedRepository) ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error) {

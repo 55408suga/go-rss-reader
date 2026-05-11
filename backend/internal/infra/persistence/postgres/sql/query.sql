@@ -10,6 +10,11 @@ SELECT id, title, registered_at, updated_at, feed_url, website_url, description,
 FROM feeds
 WHERE id = $1 LIMIT 1;
 
+-- name: CheckFeedExistsByURL :one
+SELECT EXISTS(
+    SELECT 1 FROM feeds WHERE feed_url = $1
+);
+
 -- カーソル付きと分割しなきゃsqlcの型変換がうまくいかない
 -- name: ListFeeds :many
 SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language

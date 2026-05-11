@@ -13,6 +13,7 @@ import (
 type FeedRepository interface {
 	SaveFeed(ctx context.Context, feed *model.Feed) error
 	GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error)
+	CheckFeedExistsByURL(ctx context.Context, feedURL string) (bool, error)
 	ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error)
 	UpdateFeed(ctx context.Context, feed *model.Feed) error
 	DeleteFeed(ctx context.Context, feedID uuid.UUID) error

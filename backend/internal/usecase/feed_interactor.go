@@ -40,6 +40,14 @@ func NewFeedInteractor(
 func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error) {
 	const op = "FeedInteractor.RegisterFeed"
 
+	exists, err := i.feedRepo.CheckFeedExistsByURL(ctx, feedURL)
+	if err != nil {
+		return nil, nil, apperror.Wrap(err, op)
+	}
+	if exists {
+		return nil, nil, apperror.NewConflict(op, "this feed is already registered", nil)
+	}
+
 	feed, articles, feedCursor, err := i.fetcher.FetchNewFeed(ctx, feedURL)
 	if err != nil {
 		return nil, nil, apperror.Wrap(err, op)
