@@ -1,0 +1,23 @@
+{
+  "name": "go-rss-reader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": ">=11.0.9",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "devDependencies": {
+    "lefthook": "^2.1.6"
+  },
+  "scripts": {
+    "prepare": "lefthook install"
+  }
+}

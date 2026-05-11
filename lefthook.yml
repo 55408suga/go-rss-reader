@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    backend-fmt&lint:
+      glob: "backend/**/*.go"
+      root: "backend/"
+      run: golangci-lint fmt {staged_files} && golangci-lint run
+      stage_fixed: true
+    frontend-lint:
+      glob: "frontend/**/*.{js,ts,jsx,tsx,svelte,vue}"
+      root: "frontend/"
+      run: pnpm lint --fix {staged_files}
+      stage_fixed: true
+    frontend-typecheck:
+      glob: "frontend/**/*.{ts,tsx}"
+      root: "frontend/"
+      run: pnpm typecheck
