@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -241,10 +242,15 @@ func TestFetchFeedWithCursorSuccess(t *testing.T) {
 func TestFetchFeedWithCursorNotModified(t *testing.T) {
 	t.Parallel()
 
-	var gotINM, gotIMS string
+	var (
+		mu             sync.Mutex
+		gotINM, gotIMS string
+	)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
 		gotINM = r.Header.Get("If-None-Match")
 		gotIMS = r.Header.Get("If-Modified-Since")
+		mu.Unlock()
 		w.WriteHeader(http.StatusNotModified)
 	}))
 	defer srv.Close()
@@ -264,6 +270,8 @@ func TestFetchFeedWithCursorNotModified(t *testing.T) {
 	if cursor != inCursor {
 		t.Error("expected the input cursor to be returned unchanged on 304")
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	if gotINM != etag {
 		t.Errorf("If-None-Match = %q, want %q", gotINM, etag)
 	}

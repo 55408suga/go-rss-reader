@@ -72,6 +72,8 @@ func TestTransactionManagerRoutesRepoThroughTx(t *testing.T) {
 		// visible yet under READ COMMITTED isolation.
 		if _, outerErr := feedRepo.GetFeedByID(ctx, feed.ID); outerErr == nil {
 			t.Error("uncommitted feed unexpectedly visible outside the transaction")
+		} else {
+			assertAppErrorCode(t, outerErr, apperror.CodeNotFound)
 		}
 		return nil
 	})

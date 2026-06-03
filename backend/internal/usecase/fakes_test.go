@@ -179,8 +179,8 @@ func (f *fakeFetcher) FetchNewFeed(
 	_ context.Context, _ string,
 ) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
 	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.newCalls++
-	f.mu.Unlock()
 	return f.newFeed, f.newArticles, f.newCursor, f.newErr
 }
 
