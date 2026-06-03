@@ -214,6 +214,80 @@ func TestRouterStatusMatrix(t *testing.T) {
 	}
 }
 
+// TestCORSPreflightAndHeaders mirrors cmd/main.go's middleware order
+// (request-id -> CORS -> routes) to verify the CORS wiring: preflight from an
+// allowed origin is short-circuited with 204 + allow headers, a disallowed
+// origin gets no allow-origin header, and an actual request echoes the origin.
+func TestCORSPreflightAndHeaders(t *testing.T) {
+	t.Parallel()
+
+	const allowed = "http://localhost:3000"
+	newCORSServer := func() *echo.Echo {
+		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+		e := echo.NewWithConfig(echo.Config{HTTPErrorHandler: appmw.NewGlobalErrorHandler(logger)})
+		e.Use(echomw.RequestID())
+		e.Use(appmw.RequestIDContext())
+		e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+			AllowOrigins:     []string{allowed},
+			AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
+			AllowCredentials: false,
+		}))
+		components := &di.ApplicationComponents{
+			FeedHandler:    handler.NewFeedHandler(&stubFeedUsecase{feeds: []*model.Feed{}}, logger),
+			ArticleHandler: handler.NewArticleHandler(&stubArticleUsecase{}, logger),
+		}
+		router.SetupRoutes(e, components)
+		return e
+	}
+
+	t.Run("preflight from allowed origin returns 204 with allow headers", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodOptions, "/api/v1/feeds", http.NoBody)
+		req.Header.Set(echo.HeaderOrigin, allowed)
+		req.Header.Set(echo.HeaderAccessControlRequestMethod, http.MethodGet)
+		rec := httptest.NewRecorder()
+		newCORSServer().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNoContent {
+			t.Errorf("preflight status = %d, want %d", rec.Code, http.StatusNoContent)
+		}
+		if got := rec.Header().Get(echo.HeaderAccessControlAllowOrigin); got != allowed {
+			t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, allowed)
+		}
+		if got := rec.Header().Get(echo.HeaderAccessControlAllowCredentials); got != "" {
+			t.Errorf("Access-Control-Allow-Credentials = %q, want empty", got)
+		}
+	})
+
+	t.Run("preflight from disallowed origin has no allow-origin", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodOptions, "/api/v1/feeds", http.NoBody)
+		req.Header.Set(echo.HeaderOrigin, "http://evil.example.com")
+		req.Header.Set(echo.HeaderAccessControlRequestMethod, http.MethodGet)
+		rec := httptest.NewRecorder()
+		newCORSServer().ServeHTTP(rec, req)
+
+		if got := rec.Header().Get(echo.HeaderAccessControlAllowOrigin); got != "" {
+			t.Errorf("Access-Control-Allow-Origin = %q, want empty for a disallowed origin", got)
+		}
+	})
+
+	t.Run("actual request from allowed origin echoes the origin", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/feeds", http.NoBody)
+		req.Header.Set(echo.HeaderOrigin, allowed)
+		rec := httptest.NewRecorder()
+		newCORSServer().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("status = %d, want 200 (body %s)", rec.Code, rec.Body.String())
+		}
+		if got := rec.Header().Get(echo.HeaderAccessControlAllowOrigin); got != allowed {
+			t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, allowed)
+		}
+	})
+}
+
 func TestRouterErrorResponseShape(t *testing.T) {
 	t.Parallel()
 
