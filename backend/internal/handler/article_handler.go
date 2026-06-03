@@ -63,7 +63,8 @@ func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 	}
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
-		return apperror.NewInvalidArgument(op, "validation failed", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
 	}
 
 	cursor, err := decodeCursor(req.Cursor)
@@ -100,7 +101,8 @@ func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 	}
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
-		return apperror.NewInvalidArgument(op, "validation failed", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
 	}
 	cursor, err := decodeCursor(req.Cursor)
 	if err != nil {

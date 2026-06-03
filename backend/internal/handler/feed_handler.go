@@ -76,7 +76,8 @@ func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
-		return apperror.NewInvalidArgument(op, "validation failed", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
 	}
 
 	feed, articles, err := h.feedUsecase.RegisterFeed(ctx, req.FeedURL)
@@ -107,7 +108,8 @@ func (h *FeedHandler) ListFeeds(c *echo.Context) error {
 	}
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
-		return apperror.NewInvalidArgument(op, "validation failed", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
 	}
 
 	cursor, err := decodeCursor(req.Cursor)
