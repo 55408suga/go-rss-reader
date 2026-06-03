@@ -4,7 +4,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -29,15 +28,24 @@ type RegisterFeedRequest struct {
 
 // ListFeedsRequest is the query params for listing feeds with pagination.
 type ListFeedsRequest struct {
-	CursorAt *time.Time `query:"cursor_at"` // RFC3339 timestamp
-	CursorID *uuid.UUID `query:"cursor_id"` // UUID
-	Limit    int        `query:"limit" validate:"gte=1,lte=100"`
+	Cursor string `query:"cursor"` // opaque pagination token (empty = first page)
+	Limit  int    `query:"limit" validate:"gte=1,lte=100"`
 }
 
-// RegisterFeedResponse is the response payload after feed registration.
+// RegisterFeedResponse is the data payload after feed registration.
 type RegisterFeedResponse struct {
 	Feed     *model.Feed      `json:"feed"`
 	Articles []*model.Article `json:"articles"`
+}
+
+// feedListData is the data payload for a paginated feed list.
+type feedListData struct {
+	Feeds []*model.Feed `json:"feeds"`
+}
+
+// feedData is the data payload for a single feed.
+type feedData struct {
+	Feed *model.Feed `json:"feed"`
 }
 
 var requestValidator = validator.New(validator.WithRequiredStructEnabled())
@@ -76,7 +84,7 @@ func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusCreated, RegisterFeedResponse{
+	return respondData(c, http.StatusCreated, RegisterFeedResponse{
 		Feed:     feed,
 		Articles: articles,
 	})
@@ -102,9 +110,9 @@ func (h *FeedHandler) ListFeeds(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "validation failed", err)
 	}
 
-	var cursor *model.PageCursor
-	if req.CursorAt != nil && req.CursorID != nil {
-		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
+	cursor, err := decodeCursor(req.Cursor)
+	if err != nil {
+		return apperror.Wrap(err, op)
 	}
 
 	page, err := h.feedUsecase.ListFeeds(ctx, cursor, req.Limit)
@@ -112,7 +120,11 @@ func (h *FeedHandler) ListFeeds(c *echo.Context) error {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, page.Items)
+	feeds := page.Items
+	if feeds == nil {
+		feeds = []*model.Feed{} // emit data.feeds:[] rather than null
+	}
+	return respondPage(c, http.StatusOK, feedListData{Feeds: feeds}, page)
 }
 
 // GetFeedByID returns a single feed by ID.
@@ -129,7 +141,7 @@ func (h *FeedHandler) GetFeedByID(c *echo.Context) error {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, feed)
+	return respondData(c, http.StatusOK, feedData{Feed: feed})
 }
 
 // RefreshFeed refreshes metadata/articles for a single feed.

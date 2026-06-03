@@ -31,8 +31,10 @@ type fakeFeedUsecase struct {
 	getFeed *model.Feed
 	getErr  error
 
-	listResult []*model.Feed
-	listErr    error
+	listResult  []*model.Feed
+	listNext    *model.PageCursor
+	listHasMore bool
+	listErr     error
 
 	refreshErr error
 	deleteErr  error
@@ -64,7 +66,11 @@ func (f *fakeFeedUsecase) ListFeeds(
 	if f.listErr != nil {
 		return nil, f.listErr
 	}
-	return &model.Page[*model.Feed]{Items: f.listResult}, nil
+	return &model.Page[*model.Feed]{
+		Items:      f.listResult,
+		NextCursor: f.listNext,
+		HasMore:    f.listHasMore,
+	}, nil
 }
 
 func (f *fakeFeedUsecase) RefreshFeed(_ context.Context, feedID uuid.UUID) error {

@@ -3,10 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
+	"rss_reader/internal/apiresp"
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 )
@@ -80,15 +83,15 @@ func TestFeedHandlerRegisterFeed(t *testing.T) {
 			if rec.Code != tc.wantStatus {
 				t.Errorf("status = %d, want %d", rec.Code, tc.wantStatus)
 			}
-			var resp RegisterFeedResponse
-			if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			var env apiresp.Envelope[RegisterFeedResponse]
+			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
 				t.Fatalf("unmarshal response: %v", err)
 			}
-			if resp.Feed == nil || resp.Feed.ID != feed.ID {
-				t.Errorf("response feed = %v, want id %s", resp.Feed, feed.ID)
+			if env.Data.Feed == nil || env.Data.Feed.ID != feed.ID {
+				t.Errorf("response feed = %v, want id %s", env.Data.Feed, feed.ID)
 			}
-			if len(resp.Articles) != 1 {
-				t.Errorf("response articles = %d, want 1", len(resp.Articles))
+			if len(env.Data.Articles) != 1 {
+				t.Errorf("response articles = %d, want 1", len(env.Data.Articles))
 			}
 			if tc.usecase.gotURL != url {
 				t.Errorf("usecase received url = %q, want %q", tc.usecase.gotURL, url)
@@ -101,6 +104,7 @@ func TestFeedHandlerListFeeds(t *testing.T) {
 	t.Parallel()
 
 	cursorID := uuid.New()
+	validToken := *encodeCursor(&model.PageCursor{At: time.Now().UTC(), ID: cursorID})
 
 	tests := []struct {
 		name       string
@@ -126,12 +130,19 @@ func TestFeedHandlerListFeeds(t *testing.T) {
 			wantLimit:  5,
 		},
 		{
-			name:       "both cursor params build a cursor",
-			query:      "?limit=5&cursor_at=2026-01-01T00:00:00Z&cursor_id=" + cursorID.String(),
+			name:       "cursor token builds a cursor",
+			query:      "?limit=5&cursor=" + validToken,
 			usecase:    &fakeFeedUsecase{listResult: []*model.Feed{}},
 			wantStatus: http.StatusOK,
 			wantLimit:  5,
 			wantCursor: true,
+		},
+		{
+			name:     "malformed cursor is invalid argument",
+			query:    "?cursor=@@@",
+			usecase:  &fakeFeedUsecase{},
+			wantErr:  true,
+			wantCode: apperror.CodeInvalidArgument,
 		},
 		{
 			name:     "limit over max fails validation",
@@ -181,6 +192,60 @@ func TestFeedHandlerListFeeds(t *testing.T) {
 				t.Errorf("cursor present = %v, want %v", tc.usecase.gotCursor != nil, tc.wantCursor)
 			}
 		})
+	}
+}
+
+func TestFeedHandlerListFeedsEnvelope(t *testing.T) {
+	t.Parallel()
+
+	feeds := []*model.Feed{{ID: uuid.New()}, {ID: uuid.New()}}
+	next := &model.PageCursor{At: time.Now().UTC(), ID: uuid.New()}
+	uc := &fakeFeedUsecase{listResult: feeds, listNext: next, listHasMore: true}
+
+	c, rec := newEchoContext(t, http.MethodGet, "/api/v1/feeds?limit=2", "")
+	h := NewFeedHandler(uc, quietLogger())
+
+	if err := h.ListFeeds(c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var env apiresp.Envelope[feedListData]
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal envelope: %v", err)
+	}
+	if len(env.Data.Feeds) != 2 {
+		t.Errorf("data.feeds = %d, want 2", len(env.Data.Feeds))
+	}
+	if env.Meta.Pagination == nil {
+		t.Fatal("meta.pagination is nil, want present")
+	}
+	if !env.Meta.Pagination.HasMore {
+		t.Error("meta.pagination.has_more = false, want true")
+	}
+	if env.Meta.Pagination.NextCursor == nil || *env.Meta.Pagination.NextCursor == "" {
+		t.Fatal("meta.pagination.next_cursor is empty, want an opaque token")
+	}
+	// The opaque token must round-trip back to the cursor the usecase returned.
+	got, err := decodeCursor(*env.Meta.Pagination.NextCursor)
+	if err != nil {
+		t.Fatalf("decode next_cursor: %v", err)
+	}
+	if got.ID != next.ID {
+		t.Errorf("next_cursor ID = %s, want %s", got.ID, next.ID)
+	}
+}
+
+func TestFeedHandlerListFeedsEmptyIsArrayNotNull(t *testing.T) {
+	t.Parallel()
+
+	c, rec := newEchoContext(t, http.MethodGet, "/api/v1/feeds", "")
+	h := NewFeedHandler(&fakeFeedUsecase{listResult: nil}, quietLogger())
+
+	if err := h.ListFeeds(c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, `"feeds":[]`) {
+		t.Errorf("body = %s, want data.feeds to be []", body)
 	}
 }
 

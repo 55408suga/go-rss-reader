@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/google/uuid"
 
+	"rss_reader/internal/apiresp"
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 )
@@ -84,6 +86,36 @@ func TestArticleHandlerListArticlesByFeedID(t *testing.T) {
 				t.Errorf("forwarded limit = %d, want %d", tc.usecase.gotLimit, tc.wantLimit)
 			}
 		})
+	}
+}
+
+func TestArticleHandlerListArticlesEnvelope(t *testing.T) {
+	t.Parallel()
+
+	uc := &fakeArticleUsecase{listAll: []*model.Article{{ID: uuid.New()}}}
+	c, rec := newEchoContext(t, http.MethodGet, "/api/v1/articles", "")
+	h := NewArticleHandler(uc, quietLogger())
+
+	if err := h.ListArticles(c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var env apiresp.Envelope[articleListData]
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal envelope: %v", err)
+	}
+	if len(env.Data.Articles) != 1 {
+		t.Errorf("data.articles = %d, want 1", len(env.Data.Articles))
+	}
+	if env.Meta.Pagination == nil {
+		t.Fatal("meta.pagination is nil, want present")
+	}
+	// Single page: no further results, so the cursor must be null.
+	if env.Meta.Pagination.HasMore {
+		t.Error("has_more = true, want false")
+	}
+	if env.Meta.Pagination.NextCursor != nil {
+		t.Errorf("next_cursor = %q, want null", *env.Meta.Pagination.NextCursor)
 	}
 }
 

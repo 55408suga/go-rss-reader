@@ -4,7 +4,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -23,9 +22,13 @@ type ArticleHandler struct {
 
 // ListArticlesRequest is the query params for listing articles with pagination.
 type ListArticlesRequest struct {
-	CursorAt *time.Time `query:"cursor_at"` // RFC3339 timestamp
-	CursorID *uuid.UUID `query:"cursor_id"` // UUID
-	Limit    int        `query:"limit" validate:"gte=1,lte=100"`
+	Cursor string `query:"cursor"` // opaque pagination token (empty = first page)
+	Limit  int    `query:"limit" validate:"gte=1,lte=100"`
+}
+
+// articleListData is the data payload for a paginated article list.
+type articleListData struct {
+	Articles []*model.Article `json:"articles"`
 }
 
 // NewArticleHandler creates an ArticleHandler.
@@ -63,9 +66,9 @@ func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "validation failed", err)
 	}
 
-	var cursor *model.PageCursor
-	if req.CursorAt != nil && req.CursorID != nil {
-		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
+	cursor, err := decodeCursor(req.Cursor)
+	if err != nil {
+		return apperror.Wrap(err, op)
 	}
 
 	page, err := h.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
@@ -73,7 +76,11 @@ func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, page.Items)
+	articles := page.Items
+	if articles == nil {
+		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
+	return respondPage(c, http.StatusOK, articleListData{Articles: articles}, page)
 }
 
 // ListArticles returns articles.
@@ -95,9 +102,9 @@ func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
 		return apperror.NewInvalidArgument(op, "validation failed", err)
 	}
-	var cursor *model.PageCursor
-	if req.CursorAt != nil && req.CursorID != nil {
-		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
+	cursor, err := decodeCursor(req.Cursor)
+	if err != nil {
+		return apperror.Wrap(err, op)
 	}
 
 	page, err := h.articleUsecase.ListArticles(ctx, cursor, req.Limit)
@@ -105,5 +112,9 @@ func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, page.Items)
+	articles := page.Items
+	if articles == nil {
+		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
+	return respondPage(c, http.StatusOK, articleListData{Articles: articles}, page)
 }
