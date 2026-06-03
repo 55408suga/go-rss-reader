@@ -62,11 +62,27 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 			return
 		}
 
-		var httpErr *echo.HTTPError
-		if errors.As(err, &httpErr) {
-			status := httpErr.Code
+		// Echo reports routing failures (unknown route -> 404, wrong method -> 405)
+		// and handler-raised HTTP errors through values that implement
+		// echo.HTTPStatusCoder. echo.StatusCode matches BOTH the exported
+		// *echo.HTTPError and Echo's built-in sentinels (echo.ErrNotFound,
+		// echo.ErrMethodNotAllowed, ...) via errors.As, returning 0 when the error
+		// carries no HTTP status. The previous errors.As(&*echo.HTTPError) check
+		// missed the sentinels and mislabeled 404/405 as 500.
+		if status := echo.StatusCode(err); status != 0 {
 			code := codeFromStatus(status)
-			message := publicMessage(status, httpErr.Message)
+
+			// Only a handler-constructed *echo.HTTPError carries a caller-supplied
+			// message; Echo's built-in sentinels (echo.ErrNotFound, ...) do not.
+			// errors.As reaches it even when wrapped; for the sentinels message stays
+			// empty and publicMessage falls back to http.StatusText(status).
+			var message string
+			var httpErr *echo.HTTPError
+			if errors.As(err, &httpErr) {
+				message = httpErr.Message
+			}
+
+			message = publicMessage(status, message)
 			writeErrorJSON(c, status, code, message, requestID)
 			if status >= http.StatusInternalServerError {
 				log.ErrorContext(ctx, "request failed",

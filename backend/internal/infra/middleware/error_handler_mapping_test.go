@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -131,6 +132,80 @@ func TestGlobalErrorHandlerAppErrorStatusMapping(t *testing.T) {
 			wantStatus:  http.StatusInternalServerError,
 			wantCode:    apperror.CodeInternal,
 			wantMessage: "internal server error",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := echo.New()
+			handler := NewGlobalErrorHandler(slog.New(slog.NewTextHandler(io.Discard, nil)))
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			handler(c, tc.err)
+
+			if rec.Code != tc.wantStatus {
+				t.Errorf("status = %d, want %d", rec.Code, tc.wantStatus)
+			}
+			var body errorResponseForTest
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+				t.Fatalf("decode body: %v", err)
+			}
+			if body.Error.Code != tc.wantCode {
+				t.Errorf("code = %q, want %q", body.Error.Code, tc.wantCode)
+			}
+			if body.Error.Message != tc.wantMessage {
+				t.Errorf("message = %q, want %q", body.Error.Message, tc.wantMessage)
+			}
+		})
+	}
+}
+
+// TestGlobalErrorHandlerEchoErrors covers the errors Echo itself raises: the
+// built-in routing sentinels (which previously fell through to a generic 500)
+// and a handler-constructed *echo.HTTPError. echo.StatusCode must resolve all of
+// them, including when wrapped, to the correct HTTP status.
+func TestGlobalErrorHandlerEchoErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		err         error
+		wantStatus  int
+		wantCode    apperror.Code
+		wantMessage string
+	}{
+		{
+			name:        "built-in not found maps to 404",
+			err:         echo.ErrNotFound,
+			wantStatus:  http.StatusNotFound,
+			wantCode:    apperror.CodeNotFound,
+			wantMessage: http.StatusText(http.StatusNotFound),
+		},
+		{
+			name:        "built-in method not allowed maps to 405",
+			err:         echo.ErrMethodNotAllowed,
+			wantStatus:  http.StatusMethodNotAllowed,
+			wantCode:    apperror.CodeInvalidArgument, // codeFromStatus default for an unmapped 4xx
+			wantMessage: http.StatusText(http.StatusMethodNotAllowed),
+		},
+		{
+			name:        "wrapped built-in error is unwrapped to its status",
+			err:         fmt.Errorf("router: %w", echo.ErrNotFound),
+			wantStatus:  http.StatusNotFound,
+			wantCode:    apperror.CodeNotFound,
+			wantMessage: http.StatusText(http.StatusNotFound),
+		},
+		{
+			// A constructed *echo.HTTPError carries a caller-supplied message that
+			// must survive (it is a 4xx, so publicMessage does not scrub it).
+			name:        "constructed HTTPError preserves its caller message",
+			err:         echo.NewHTTPError(http.StatusBadRequest, "bad feed url"),
+			wantStatus:  http.StatusBadRequest,
+			wantCode:    apperror.CodeInvalidArgument,
+			wantMessage: "bad feed url",
 		},
 	}
 

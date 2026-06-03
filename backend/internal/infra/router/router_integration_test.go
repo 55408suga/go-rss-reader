@@ -153,6 +153,23 @@ func TestRouterStatusMatrix(t *testing.T) {
 			articleUC:  &stubArticleUsecase{articles: []*model.Article{}},
 			wantStatus: http.StatusOK,
 		},
+		{
+			// Regression guard: Echo raises its built-in echo.ErrNotFound for an
+			// unmatched path. The global error handler must surface that as 404,
+			// not the generic 500 it returned before the echo.StatusCode fix.
+			name:       "unknown route returns 404",
+			method:     http.MethodGet,
+			target:     "/api/v1/does-not-exist",
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			// /api/v1/feeds is registered for GET and POST; PATCH makes Echo raise
+			// its built-in echo.ErrMethodNotAllowed, which must surface as 405.
+			name:       "wrong method on a known path returns 405",
+			method:     http.MethodPatch,
+			target:     "/api/v1/feeds",
+			wantStatus: http.StatusMethodNotAllowed,
+		},
 	}
 
 	for _, tc := range tests {
