@@ -68,12 +68,12 @@ func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
 	}
 
-	articles, err := h.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
+	page, err := h.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, articles)
+	return c.JSON(http.StatusOK, page.Items)
 }
 
 // ListArticles returns articles.
@@ -100,10 +100,10 @@ func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
 	}
 
-	articles, err := h.articleUsecase.ListArticles(ctx, cursor, req.Limit)
+	page, err := h.articleUsecase.ListArticles(ctx, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, articles)
+	return c.JSON(http.StatusOK, page.Items)
 }

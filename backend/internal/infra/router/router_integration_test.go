@@ -48,8 +48,11 @@ func (s *stubFeedUsecase) GetFeedByID(context.Context, uuid.UUID) (*model.Feed, 
 
 func (s *stubFeedUsecase) ListFeeds(
 	context.Context, *model.PageCursor, int,
-) ([]*model.Feed, error) {
-	return s.feeds, s.err
+) (*model.Page[*model.Feed], error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &model.Page[*model.Feed]{Items: s.feeds}, nil
 }
 
 func (s *stubFeedUsecase) RefreshFeed(context.Context, uuid.UUID) error { return s.err }
@@ -62,14 +65,20 @@ type stubArticleUsecase struct {
 
 func (s *stubArticleUsecase) ListArticlesByFeedID(
 	context.Context, uuid.UUID, *model.PageCursor, int,
-) ([]*model.Article, error) {
-	return s.articles, s.err
+) (*model.Page[*model.Article], error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &model.Page[*model.Article]{Items: s.articles}, nil
 }
 
 func (s *stubArticleUsecase) ListArticles(
 	context.Context, *model.PageCursor, int,
-) ([]*model.Article, error) {
-	return s.articles, s.err
+) (*model.Page[*model.Article], error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &model.Page[*model.Article]{Items: s.articles}, nil
 }
 
 // newServer wires the production HTTP stack (error handler + request-id

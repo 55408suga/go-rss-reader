@@ -58,10 +58,13 @@ func (f *fakeFeedUsecase) GetFeedByID(_ context.Context, feedID uuid.UUID) (*mod
 
 func (f *fakeFeedUsecase) ListFeeds(
 	_ context.Context, cursor *model.PageCursor, limit int,
-) ([]*model.Feed, error) {
+) (*model.Page[*model.Feed], error) {
 	f.gotCursor = cursor
 	f.gotLimit = limit
-	return f.listResult, f.listErr
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return &model.Page[*model.Feed]{Items: f.listResult}, nil
 }
 
 func (f *fakeFeedUsecase) RefreshFeed(_ context.Context, feedID uuid.UUID) error {
@@ -87,19 +90,25 @@ type fakeArticleUsecase struct {
 
 func (f *fakeArticleUsecase) ListArticlesByFeedID(
 	_ context.Context, feedID uuid.UUID, cursor *model.PageCursor, limit int,
-) ([]*model.Article, error) {
+) (*model.Page[*model.Article], error) {
 	f.gotFeedID = feedID
 	f.gotCursor = cursor
 	f.gotLimit = limit
-	return f.listByFeed, f.listByFeedErr
+	if f.listByFeedErr != nil {
+		return nil, f.listByFeedErr
+	}
+	return &model.Page[*model.Article]{Items: f.listByFeed}, nil
 }
 
 func (f *fakeArticleUsecase) ListArticles(
 	_ context.Context, cursor *model.PageCursor, limit int,
-) ([]*model.Article, error) {
+) (*model.Page[*model.Article], error) {
 	f.gotCursor = cursor
 	f.gotLimit = limit
-	return f.listAll, f.listAllErr
+	if f.listAllErr != nil {
+		return nil, f.listAllErr
+	}
+	return &model.Page[*model.Article]{Items: f.listAll}, nil
 }
 
 // quietLogger discards log output so handler warning logs do not clutter tests.

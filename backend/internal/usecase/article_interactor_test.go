@@ -46,8 +46,8 @@ func TestListArticlesByFeedID(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if len(got) != tc.wantLen {
-				t.Errorf("len = %d, want %d", len(got), tc.wantLen)
+			if len(got.Items) != tc.wantLen {
+				t.Errorf("len = %d, want %d", len(got.Items), tc.wantLen)
 			}
 		})
 	}
@@ -89,8 +89,8 @@ func TestListArticles(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if len(got) != tc.wantLen {
-				t.Errorf("len = %d, want %d", len(got), tc.wantLen)
+			if len(got.Items) != tc.wantLen {
+				t.Errorf("len = %d, want %d", len(got.Items), tc.wantLen)
 			}
 		})
 	}

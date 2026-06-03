@@ -107,12 +107,12 @@ func (h *FeedHandler) ListFeeds(c *echo.Context) error {
 		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
 	}
 
-	feeds, err := h.feedUsecase.ListFeeds(ctx, cursor, req.Limit)
+	page, err := h.feedUsecase.ListFeeds(ctx, cursor, req.Limit)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, feeds)
+	return c.JSON(http.StatusOK, page.Items)
 }
 
 // GetFeedByID returns a single feed by ID.

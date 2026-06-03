@@ -91,16 +91,26 @@ func (i *FeedInteractor) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	return feed, nil
 }
 
-// ListFeeds returns feeds up to limit starting after cursor (nil = first page).
-func (i *FeedInteractor) ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error) {
+// ListFeeds returns one keyset page of feeds starting after cursor (nil = first
+// page). It over-fetches by one row (limit+1) so paginate can report has_more
+// and the next cursor without a second query.
+func (i *FeedInteractor) ListFeeds(
+	ctx context.Context,
+	cursor *model.PageCursor,
+	limit int,
+) (*model.Page[*model.Feed], error) {
 	const op = "FeedInteractor.ListFeeds"
 
-	feeds, err := i.feedRepo.ListFeeds(ctx, cursor, limit)
+	feeds, err := i.feedRepo.ListFeeds(ctx, cursor, limit+1)
 	if err != nil {
 		return nil, apperror.Wrap(err, op)
 	}
 
-	return feeds, nil
+	// Feeds are ordered by (registered_at DESC, id DESC); the cursor mirrors
+	// that keyset so the next page resumes strictly after the last feed.
+	return paginate(feeds, limit, func(f *model.Feed) model.PageCursor {
+		return model.PageCursor{At: f.RegisteredAt, ID: f.ID}
+	}), nil
 }
 
 // RefreshFeed fetches latest feed metadata and articles for the given feed and saves them atomically.

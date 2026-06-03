@@ -173,16 +173,24 @@ func TestListFeeds(t *testing.T) {
 	t.Parallel()
 
 	feeds := []*model.Feed{{ID: uuid.New()}, {ID: uuid.New()}}
+	// The interactor over-fetches limit+1; with limit 10 a repo result of 11
+	// feeds means a further page exists, so the page is trimmed to 10.
+	manyFeeds := make([]*model.Feed, 11)
+	for i := range manyFeeds {
+		manyFeeds[i] = &model.Feed{ID: uuid.New()}
+	}
 
 	tests := []struct {
-		name      string
-		listFeeds []*model.Feed
-		listErr   error
-		wantLen   int
-		wantErr   bool
-		wantCode  apperror.Code
+		name        string
+		listFeeds   []*model.Feed
+		listErr     error
+		wantLen     int
+		wantHasMore bool
+		wantErr     bool
+		wantCode    apperror.Code
 	}{
-		{name: "returns feeds", listFeeds: feeds, wantLen: 2},
+		{name: "returns feeds", listFeeds: feeds, wantLen: 2, wantHasMore: false},
+		{name: "over limit reports has_more", listFeeds: manyFeeds, wantLen: 10, wantHasMore: true},
 		{
 			name:     "error preserved",
 			listErr:  apperror.NewInternal("repo", "boom", nil),
@@ -206,8 +214,11 @@ func TestListFeeds(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if len(got) != tc.wantLen {
-				t.Errorf("len = %d, want %d", len(got), tc.wantLen)
+			if len(got.Items) != tc.wantLen {
+				t.Errorf("len = %d, want %d", len(got.Items), tc.wantLen)
+			}
+			if got.HasMore != tc.wantHasMore {
+				t.Errorf("HasMore = %v, want %v", got.HasMore, tc.wantHasMore)
 			}
 		})
 	}
