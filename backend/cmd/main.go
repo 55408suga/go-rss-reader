@@ -62,6 +62,15 @@ func main() {
 	})
 	e.Use(middleware.RequestID())
 	e.Use(appmiddleware.RequestIDContext())
+	// CORS sits right after request-id so even preflight/rejected requests are
+	// correlated, but before the logger/recover/timeout and the router: Echo's
+	// CORS short-circuits OPTIONS preflight with a 204, so there is no point
+	// running those for a no-op preflight.
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     cfg.CORSAllowedOrigins,
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowCredentials: false,
+	}))
 	e.Use(appmiddleware.RequestLogger(logger))
 	e.Use(middleware.Recover())
 	e.Use(middleware.ContextTimeout(15 * time.Second))

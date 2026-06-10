@@ -8,23 +8,10 @@ import (
 
 	"github.com/labstack/echo/v5"
 
+	"rss_reader/internal/apiresp"
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/applog"
 )
-
-type errorResponse struct {
-	Error errorBody `json:"error"`
-	Meta  metaBody  `json:"meta"`
-}
-
-type errorBody struct {
-	Code    apperror.Code `json:"code"`
-	Message string        `json:"message"`
-}
-
-type metaBody struct {
-	RequestID string `json:"request_id"`
-}
 
 // NewGlobalErrorHandler converts returned errors into standardized JSON responses.
 func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
@@ -51,7 +38,7 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 		if errors.As(err, &appErr) {
 			status := statusFromCode(appErr.Code)
 			message := publicMessage(status, appErr.Message)
-			writeErrorJSON(c, status, appErr.Code, message, requestID)
+			writeErrorJSON(c, status, appErr.Code, message, requestID, appErr.Details)
 			if status >= http.StatusInternalServerError {
 				log.ErrorContext(ctx, "request failed",
 					"code", appErr.Code,
@@ -83,7 +70,7 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 			}
 
 			message = publicMessage(status, message)
-			writeErrorJSON(c, status, code, message, requestID)
+			writeErrorJSON(c, status, code, message, requestID, nil)
 			if status >= http.StatusInternalServerError {
 				log.ErrorContext(ctx, "request failed",
 					"code", code,
@@ -94,7 +81,10 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 			return
 		}
 
-		writeErrorJSON(c, http.StatusInternalServerError, apperror.CodeInternal, "internal server error", requestID)
+		writeErrorJSON(
+			c, http.StatusInternalServerError, apperror.CodeInternal,
+			"internal server error", requestID, nil,
+		)
 		log.ErrorContext(ctx, "request failed",
 			"code", apperror.CodeInternal,
 			"error", err,
@@ -102,12 +92,35 @@ func NewGlobalErrorHandler(baseLogger *slog.Logger) echo.HTTPErrorHandler {
 	}
 }
 
-func writeErrorJSON(c *echo.Context, status int, code apperror.Code, message, requestID string) {
-	response := errorResponse{
-		Error: errorBody{Code: code, Message: message},
-		Meta:  metaBody{RequestID: requestID},
+func writeErrorJSON(
+	c *echo.Context,
+	status int,
+	code apperror.Code,
+	message, requestID string,
+	details []apperror.FieldViolation,
+) {
+	response := apiresp.ErrorEnvelope{
+		Error: apiresp.ErrorBody{
+			Code:    string(code),
+			Message: message,
+			Details: toFieldErrors(details),
+		},
+		Meta: apiresp.Meta{RequestID: requestID},
 	}
 	_ = c.JSON(status, response)
+}
+
+// toFieldErrors maps domain violations onto the transport DTO, returning nil
+// (so details is omitted) when there are none.
+func toFieldErrors(violations []apperror.FieldViolation) []apiresp.FieldError {
+	if len(violations) == 0 {
+		return nil
+	}
+	out := make([]apiresp.FieldError, len(violations))
+	for i, v := range violations {
+		out[i] = apiresp.FieldError{Field: v.Field, Reason: v.Reason}
+	}
+	return out
 }
 
 func statusFromCode(code apperror.Code) int {

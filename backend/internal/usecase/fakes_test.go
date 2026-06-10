@@ -38,6 +38,7 @@ type fakeFeedRepo struct {
 	savedFeeds   []*model.Feed
 	updatedFeeds []*model.Feed
 	deletedIDs   []uuid.UUID
+	gotListLimit int
 }
 
 func (f *fakeFeedRepo) CheckFeedExistsByURL(_ context.Context, _ string) (bool, error) {
@@ -60,9 +61,12 @@ func (f *fakeFeedRepo) GetFeedByID(_ context.Context, _ uuid.UUID) (*model.Feed,
 	return f.getFeed, f.getErr
 }
 
-func (f *fakeFeedRepo) ListFeeds(_ context.Context, _ *model.PageCursor, _ int) ([]*model.Feed, error) {
+func (f *fakeFeedRepo) ListFeeds(
+	_ context.Context, _ *model.PageCursor, limit int,
+) ([]*model.Feed, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.gotListLimit = limit
 	return f.listFeeds, f.listErr
 }
 
@@ -92,6 +96,7 @@ type fakeArticleRepo struct {
 	saveErr       error
 
 	savedArticles []*model.Article
+	gotListLimit  int
 }
 
 func (f *fakeArticleRepo) SaveArticle(_ context.Context, article *model.Article) error {
@@ -106,18 +111,20 @@ func (f *fakeArticleRepo) GetArticleByID(_ context.Context, _ uuid.UUID) (*model
 }
 
 func (f *fakeArticleRepo) ListArticlesByFeedID(
-	_ context.Context, _ uuid.UUID, _ *model.PageCursor, _ int,
+	_ context.Context, _ uuid.UUID, _ *model.PageCursor, limit int,
 ) ([]*model.Article, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.gotListLimit = limit
 	return f.listByFeed, f.listByFeedErr
 }
 
 func (f *fakeArticleRepo) ListArticles(
-	_ context.Context, _ *model.PageCursor, _ int,
+	_ context.Context, _ *model.PageCursor, limit int,
 ) ([]*model.Article, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.gotListLimit = limit
 	return f.listAll, f.listAllErr
 }
 

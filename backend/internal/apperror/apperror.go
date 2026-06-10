@@ -19,12 +19,32 @@ const (
 	CodeInternal Code = "internal"
 )
 
+// FieldViolation describes a single field-level validation problem.
+// It is the transport-agnostic source for the API's error.details array.
+type FieldViolation struct {
+	Field  string
+	Reason string
+}
+
 // AppError is the canonical error type propagated across layers.
 type AppError struct {
 	Code    Code
 	Message string
 	Op      string
 	Err     error
+	// Details carries optional field-level violations (e.g. failed request
+	// validation). Populated at the boundary where the violations are known.
+	Details []FieldViolation
+}
+
+// WithDetails attaches field-level violations and returns the same error,
+// for chaining on a freshly constructed AppError at the validation boundary.
+func (e *AppError) WithDetails(details []FieldViolation) *AppError {
+	if e == nil {
+		return nil
+	}
+	e.Details = details
+	return e
 }
 
 func (e *AppError) Error() string {
