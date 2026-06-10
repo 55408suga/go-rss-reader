@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -17,6 +18,9 @@ func TestArticleHandlerListArticlesByFeedID(t *testing.T) {
 
 	feedID := uuid.New()
 	articles := []*model.Article{{ID: uuid.New()}}
+	cursorID := uuid.New()
+	cursorAt := time.Date(2026, 6, 3, 12, 0, 0, 0, time.UTC)
+	validToken := *encodeCursor(&model.PageCursor{At: cursorAt, ID: cursorID})
 
 	tests := []struct {
 		name       string
@@ -27,6 +31,7 @@ func TestArticleHandlerListArticlesByFeedID(t *testing.T) {
 		wantErr    bool
 		wantCode   apperror.Code
 		wantLimit  int
+		wantCursor bool
 	}{
 		{
 			name:       "success defaults limit to 10",
@@ -34,6 +39,23 @@ func TestArticleHandlerListArticlesByFeedID(t *testing.T) {
 			usecase:    &fakeArticleUsecase{listByFeed: articles},
 			wantStatus: http.StatusOK,
 			wantLimit:  10,
+		},
+		{
+			name:       "cursor token builds a cursor",
+			paramID:    feedID.String(),
+			query:      "?cursor=" + validToken,
+			usecase:    &fakeArticleUsecase{listByFeed: articles},
+			wantStatus: http.StatusOK,
+			wantLimit:  10,
+			wantCursor: true,
+		},
+		{
+			name:     "malformed cursor is invalid argument",
+			paramID:  feedID.String(),
+			query:    "?cursor=@@@",
+			usecase:  &fakeArticleUsecase{},
+			wantErr:  true,
+			wantCode: apperror.CodeInvalidArgument,
 		},
 		{
 			name:     "invalid feed id is invalid argument",
@@ -85,6 +107,15 @@ func TestArticleHandlerListArticlesByFeedID(t *testing.T) {
 			if tc.usecase.gotLimit != tc.wantLimit {
 				t.Errorf("forwarded limit = %d, want %d", tc.usecase.gotLimit, tc.wantLimit)
 			}
+			if (tc.usecase.gotCursor != nil) != tc.wantCursor {
+				t.Errorf("cursor present = %v, want %v", tc.usecase.gotCursor != nil, tc.wantCursor)
+			}
+			if tc.wantCursor && tc.usecase.gotCursor != nil {
+				if !tc.usecase.gotCursor.At.Equal(cursorAt) || tc.usecase.gotCursor.ID != cursorID {
+					t.Errorf("forwarded cursor = %+v, want {%v %s}",
+						tc.usecase.gotCursor, cursorAt, cursorID)
+				}
+			}
 		})
 	}
 }
@@ -123,6 +154,9 @@ func TestArticleHandlerListArticles(t *testing.T) {
 	t.Parallel()
 
 	articles := []*model.Article{{ID: uuid.New()}}
+	cursorID := uuid.New()
+	cursorAt := time.Date(2026, 6, 3, 12, 0, 0, 0, time.UTC)
+	validToken := *encodeCursor(&model.PageCursor{At: cursorAt, ID: cursorID})
 
 	tests := []struct {
 		name       string
@@ -132,6 +166,7 @@ func TestArticleHandlerListArticles(t *testing.T) {
 		wantErr    bool
 		wantCode   apperror.Code
 		wantLimit  int
+		wantCursor bool
 	}{
 		{
 			name:       "success defaults limit to 10",
@@ -145,6 +180,21 @@ func TestArticleHandlerListArticles(t *testing.T) {
 			usecase:    &fakeArticleUsecase{listAll: articles},
 			wantStatus: http.StatusOK,
 			wantLimit:  25,
+		},
+		{
+			name:       "cursor token builds a cursor",
+			query:      "?cursor=" + validToken,
+			usecase:    &fakeArticleUsecase{listAll: articles},
+			wantStatus: http.StatusOK,
+			wantLimit:  10,
+			wantCursor: true,
+		},
+		{
+			name:     "malformed cursor is invalid argument",
+			query:    "?cursor=@@@",
+			usecase:  &fakeArticleUsecase{},
+			wantErr:  true,
+			wantCode: apperror.CodeInvalidArgument,
 		},
 		{
 			name:     "limit over max fails validation",
@@ -182,6 +232,55 @@ func TestArticleHandlerListArticles(t *testing.T) {
 			if tc.usecase.gotLimit != tc.wantLimit {
 				t.Errorf("forwarded limit = %d, want %d", tc.usecase.gotLimit, tc.wantLimit)
 			}
+			if (tc.usecase.gotCursor != nil) != tc.wantCursor {
+				t.Errorf("cursor present = %v, want %v", tc.usecase.gotCursor != nil, tc.wantCursor)
+			}
+			if tc.wantCursor && tc.usecase.gotCursor != nil {
+				if !tc.usecase.gotCursor.At.Equal(cursorAt) || tc.usecase.gotCursor.ID != cursorID {
+					t.Errorf("forwarded cursor = %+v, want {%v %s}",
+						tc.usecase.gotCursor, cursorAt, cursorID)
+				}
+			}
 		})
+	}
+}
+
+// TestArticleHandlerListArticlesPagination drives the has-more branch: the
+// usecase's structured next cursor must surface as a decodable opaque token.
+func TestArticleHandlerListArticlesPagination(t *testing.T) {
+	t.Parallel()
+
+	next := &model.PageCursor{At: time.Date(2026, 6, 3, 12, 0, 0, 0, time.UTC), ID: uuid.New()}
+	uc := &fakeArticleUsecase{
+		listAll:        []*model.Article{{ID: uuid.New()}},
+		listAllNext:    next,
+		listAllHasMore: true,
+	}
+	c, rec := newEchoContext(t, http.MethodGet, "/api/v1/articles", "")
+	h := NewArticleHandler(uc, quietLogger())
+
+	if err := h.ListArticles(c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var env apiresp.Envelope[articleListData]
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal envelope: %v", err)
+	}
+	if env.Meta.Pagination == nil {
+		t.Fatal("meta.pagination is nil, want present")
+	}
+	if !env.Meta.Pagination.HasMore {
+		t.Error("has_more = false, want true")
+	}
+	if env.Meta.Pagination.NextCursor == nil {
+		t.Fatal("next_cursor is null, want an opaque token")
+	}
+	got, err := decodeCursor(*env.Meta.Pagination.NextCursor)
+	if err != nil {
+		t.Fatalf("decode next_cursor: %v", err)
+	}
+	if !got.At.Equal(next.At) || got.ID != next.ID {
+		t.Errorf("next_cursor = %+v, want %+v", got, next)
 	}
 }

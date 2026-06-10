@@ -60,6 +60,11 @@ func TestDecodeCursorInvalidIsInvalidArgument(t *testing.T) {
 	tests := map[string]string{
 		"not base64":            "!!! not base64 !!!",
 		"valid base64 not json": base64.RawURLEncoding.EncodeToString([]byte("foobar")),
+		// Decodable JSON whose shape is not a usable keyset position.
+		"empty object is zero-value cursor": base64.RawURLEncoding.EncodeToString([]byte(`{}`)),
+		"missing ID":                        base64.RawURLEncoding.EncodeToString([]byte(`{"At":"2026-06-03T12:00:00Z"}`)),
+		"missing At": base64.RawURLEncoding.EncodeToString(
+			[]byte(`{"ID":"` + uuid.New().String() + `"}`)),
 	}
 
 	for name, token := range tests {

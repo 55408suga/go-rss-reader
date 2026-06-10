@@ -104,7 +104,8 @@ func TestFeedHandlerListFeeds(t *testing.T) {
 	t.Parallel()
 
 	cursorID := uuid.New()
-	validToken := *encodeCursor(&model.PageCursor{At: time.Now().UTC(), ID: cursorID})
+	cursorAt := time.Date(2026, 6, 3, 12, 0, 0, 0, time.UTC)
+	validToken := *encodeCursor(&model.PageCursor{At: cursorAt, ID: cursorID})
 
 	tests := []struct {
 		name       string
@@ -191,6 +192,14 @@ func TestFeedHandlerListFeeds(t *testing.T) {
 			if (tc.usecase.gotCursor != nil) != tc.wantCursor {
 				t.Errorf("cursor present = %v, want %v", tc.usecase.gotCursor != nil, tc.wantCursor)
 			}
+			if tc.wantCursor && tc.usecase.gotCursor != nil {
+				// The full keyset must survive the round trip; losing At
+				// would silently restart pagination from the epoch.
+				if !tc.usecase.gotCursor.At.Equal(cursorAt) || tc.usecase.gotCursor.ID != cursorID {
+					t.Errorf("forwarded cursor = %+v, want {%v %s}",
+						tc.usecase.gotCursor, cursorAt, cursorID)
+				}
+			}
 		})
 	}
 }
@@ -199,7 +208,7 @@ func TestFeedHandlerListFeedsEnvelope(t *testing.T) {
 	t.Parallel()
 
 	feeds := []*model.Feed{{ID: uuid.New()}, {ID: uuid.New()}}
-	next := &model.PageCursor{At: time.Now().UTC(), ID: uuid.New()}
+	next := &model.PageCursor{At: time.Date(2026, 6, 3, 12, 0, 0, 0, time.UTC), ID: uuid.New()}
 	uc := &fakeFeedUsecase{listResult: feeds, listNext: next, listHasMore: true}
 
 	c, rec := newEchoContext(t, http.MethodGet, "/api/v1/feeds?limit=2", "")
@@ -230,8 +239,8 @@ func TestFeedHandlerListFeedsEnvelope(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decode next_cursor: %v", err)
 	}
-	if got.ID != next.ID {
-		t.Errorf("next_cursor ID = %s, want %s", got.ID, next.ID)
+	if !got.At.Equal(next.At) || got.ID != next.ID {
+		t.Errorf("next_cursor = %+v, want %+v", got, next)
 	}
 }
 

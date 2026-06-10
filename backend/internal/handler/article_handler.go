@@ -40,8 +40,8 @@ func NewArticleHandler(articleUsecase usecase.ArticleUsecase, logger *slog.Logge
 	return &ArticleHandler{articleUsecase: articleUsecase, logger: logger}
 }
 
-// ListArticlesByFeedID returns articles for a feed.
-// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+// ListArticlesByFeedID returns one page of articles for a feed.
+// Accepts optional query params cursor (opaque pagination token) and limit.
 func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 	const op = "ArticleHandler.ListArticlesByFeedID"
 	ctx := c.Request().Context()
@@ -84,8 +84,8 @@ func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 	return respondPage(c, http.StatusOK, articleListData{Articles: articles}, page)
 }
 
-// ListArticles returns articles.
-// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+// ListArticles returns one page of articles.
+// Accepts optional query params cursor (opaque pagination token) and limit.
 func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 	const op = "ArticleHandler.ListArticles"
 	ctx := c.Request().Context()

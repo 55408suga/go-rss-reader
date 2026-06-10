@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/google/uuid"
+
 	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 )
@@ -46,6 +48,11 @@ func decodeCursor(token string) (*model.PageCursor, error) {
 	var cursor model.PageCursor
 	if err := json.Unmarshal(raw, &cursor); err != nil {
 		return nil, apperror.NewInvalidArgument(op, "invalid cursor", err)
+	}
+	// Syntactically valid JSON like {} still isn't a usable keyset position:
+	// both components must be present for (At, ID) comparisons to make sense.
+	if cursor.At.IsZero() || cursor.ID == uuid.Nil {
+		return nil, apperror.NewInvalidArgument(op, "invalid cursor", nil)
 	}
 	return &cursor, nil
 }

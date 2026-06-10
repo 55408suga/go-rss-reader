@@ -85,14 +85,17 @@ func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 		return apperror.Wrap(err, op)
 	}
 
+	if articles == nil {
+		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
 	return respondData(c, http.StatusCreated, RegisterFeedResponse{
 		Feed:     feed,
 		Articles: articles,
 	})
 }
 
-// ListFeeds returns registered feeds.
-// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+// ListFeeds returns one page of registered feeds.
+// Accepts optional query params cursor (opaque pagination token) and limit.
 func (h *FeedHandler) ListFeeds(c *echo.Context) error {
 	const op = "FeedHandler.ListFeeds"
 	ctx := c.Request().Context()

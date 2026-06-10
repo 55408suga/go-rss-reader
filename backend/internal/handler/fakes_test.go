@@ -84,10 +84,14 @@ func (f *fakeFeedUsecase) DeleteFeed(_ context.Context, feedID uuid.UUID) error 
 }
 
 type fakeArticleUsecase struct {
-	listByFeed    []*model.Article
-	listByFeedErr error
-	listAll       []*model.Article
-	listAllErr    error
+	listByFeed        []*model.Article
+	listByFeedNext    *model.PageCursor
+	listByFeedHasMore bool
+	listByFeedErr     error
+	listAll           []*model.Article
+	listAllNext       *model.PageCursor
+	listAllHasMore    bool
+	listAllErr        error
 
 	gotFeedID uuid.UUID
 	gotCursor *model.PageCursor
@@ -103,7 +107,11 @@ func (f *fakeArticleUsecase) ListArticlesByFeedID(
 	if f.listByFeedErr != nil {
 		return nil, f.listByFeedErr
 	}
-	return &model.Page[*model.Article]{Items: f.listByFeed}, nil
+	return &model.Page[*model.Article]{
+		Items:      f.listByFeed,
+		NextCursor: f.listByFeedNext,
+		HasMore:    f.listByFeedHasMore,
+	}, nil
 }
 
 func (f *fakeArticleUsecase) ListArticles(
@@ -114,7 +122,11 @@ func (f *fakeArticleUsecase) ListArticles(
 	if f.listAllErr != nil {
 		return nil, f.listAllErr
 	}
-	return &model.Page[*model.Article]{Items: f.listAll}, nil
+	return &model.Page[*model.Article]{
+		Items:      f.listAll,
+		NextCursor: f.listAllNext,
+		HasMore:    f.listAllHasMore,
+	}, nil
 }
 
 // quietLogger discards log output so handler warning logs do not clutter tests.
