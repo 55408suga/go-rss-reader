@@ -23,7 +23,7 @@ import (
 type FeedUsecase interface {
 	RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error)
 	GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error)
-	ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Feed, error)
+	ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) (*model.Page[*model.Feed], error)
 	RefreshFeed(ctx context.Context, feedID uuid.UUID) error
 	DeleteFeed(ctx context.Context, feedID uuid.UUID) error
 }
@@ -35,8 +35,8 @@ type ArticleUsecase interface {
 		feedID uuid.UUID,
 		cursor *model.PageCursor,
 		limit int,
-	) ([]*model.Article, error)
-	ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) ([]*model.Article, error)
+	) (*model.Page[*model.Article], error)
+	ListArticles(ctx context.Context, cursor *model.PageCursor, limit int) (*model.Page[*model.Article], error)
 }
 
 // FeedJobUsecase defines scheduled feed refresh jobs driven by the scheduler.

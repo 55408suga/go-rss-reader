@@ -4,7 +4,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
@@ -23,9 +22,13 @@ type ArticleHandler struct {
 
 // ListArticlesRequest is the query params for listing articles with pagination.
 type ListArticlesRequest struct {
-	CursorAt *time.Time `query:"cursor_at"` // RFC3339 timestamp
-	CursorID *uuid.UUID `query:"cursor_id"` // UUID
-	Limit    int        `query:"limit" validate:"gte=1,lte=100"`
+	Cursor string `query:"cursor"` // opaque pagination token (empty = first page)
+	Limit  int    `query:"limit" validate:"gte=1,lte=100"`
+}
+
+// articleListData is the data payload for a paginated article list.
+type articleListData struct {
+	Articles []*model.Article `json:"articles"`
 }
 
 // NewArticleHandler creates an ArticleHandler.
@@ -37,8 +40,8 @@ func NewArticleHandler(articleUsecase usecase.ArticleUsecase, logger *slog.Logge
 	return &ArticleHandler{articleUsecase: articleUsecase, logger: logger}
 }
 
-// ListArticlesByFeedID returns articles for a feed.
-// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+// ListArticlesByFeedID returns one page of articles for a feed.
+// Accepts optional query params cursor (opaque pagination token) and limit.
 func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 	const op = "ArticleHandler.ListArticlesByFeedID"
 	ctx := c.Request().Context()
@@ -60,24 +63,29 @@ func (h *ArticleHandler) ListArticlesByFeedID(c *echo.Context) error {
 	}
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
-		return apperror.NewInvalidArgument(op, "validation failed", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
 	}
 
-	var cursor *model.PageCursor
-	if req.CursorAt != nil && req.CursorID != nil {
-		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
-	}
-
-	articles, err := h.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
+	cursor, err := decodeCursor(req.Cursor)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, articles)
+	page, err := h.articleUsecase.ListArticlesByFeedID(ctx, feedID, cursor, req.Limit)
+	if err != nil {
+		return apperror.Wrap(err, op)
+	}
+
+	articles := page.Items
+	if articles == nil {
+		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
+	return respondPage(c, http.StatusOK, articleListData{Articles: articles}, page)
 }
 
-// ListArticles returns articles.
-// Accepts optional query params cursor_at (RFC3339) and cursor_id (UUID) for pagination.
+// ListArticles returns one page of articles.
+// Accepts optional query params cursor (opaque pagination token) and limit.
 func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 	const op = "ArticleHandler.ListArticles"
 	ctx := c.Request().Context()
@@ -93,17 +101,22 @@ func (h *ArticleHandler) ListArticles(c *echo.Context) error {
 	}
 	if err := requestValidator.Struct(req); err != nil {
 		logger.WarnContext(ctx, "request validation failed", "error", err)
-		return apperror.NewInvalidArgument(op, "validation failed", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
 	}
-	var cursor *model.PageCursor
-	if req.CursorAt != nil && req.CursorID != nil {
-		cursor = &model.PageCursor{At: *req.CursorAt, ID: *req.CursorID}
-	}
-
-	articles, err := h.articleUsecase.ListArticles(ctx, cursor, req.Limit)
+	cursor, err := decodeCursor(req.Cursor)
 	if err != nil {
 		return apperror.Wrap(err, op)
 	}
 
-	return c.JSON(http.StatusOK, articles)
+	page, err := h.articleUsecase.ListArticles(ctx, cursor, req.Limit)
+	if err != nil {
+		return apperror.Wrap(err, op)
+	}
+
+	articles := page.Items
+	if articles == nil {
+		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
+	return respondPage(c, http.StatusOK, articleListData{Articles: articles}, page)
 }

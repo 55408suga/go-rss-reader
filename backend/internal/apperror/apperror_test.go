@@ -169,6 +169,39 @@ func TestAppErrorErrorString(t *testing.T) {
 	}
 }
 
+func TestWithDetailsAttachesViolations(t *testing.T) {
+	t.Parallel()
+
+	base := NewInvalidArgument("Handler.Bind", "validation failed", nil)
+	withDetails := base.WithDetails([]FieldViolation{
+		{Field: "feed_url", Reason: "must be a valid URL"},
+	})
+
+	if len(withDetails.Details) != 1 {
+		t.Fatalf("Details length = %d, want 1", len(withDetails.Details))
+	}
+	if got := withDetails.Details[0]; got.Field != "feed_url" || got.Reason != "must be a valid URL" {
+		t.Errorf("Details[0] = %+v, want {feed_url, must be a valid URL}", got)
+	}
+}
+
+func TestWrapPreservesDetails(t *testing.T) {
+	t.Parallel()
+
+	base := NewInvalidArgument("Handler.Bind", "validation failed", nil).
+		WithDetails([]FieldViolation{{Field: "limit", Reason: "must be 100 or less"}})
+
+	wrapped := Wrap(base, "FeedHandler.ListFeeds")
+
+	var appErr *AppError
+	if !errors.As(wrapped, &appErr) {
+		t.Fatalf("expected AppError, got %T", wrapped)
+	}
+	if len(appErr.Details) != 1 || appErr.Details[0].Field != "limit" {
+		t.Fatalf("Details not preserved through Wrap: %+v", appErr.Details)
+	}
+}
+
 func TestAppErrorUnwrap(t *testing.T) {
 	t.Parallel()
 

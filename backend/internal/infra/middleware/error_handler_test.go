@@ -57,6 +57,45 @@ func TestGlobalErrorHandlerAppError(t *testing.T) {
 	}
 }
 
+func TestGlobalErrorHandlerAppErrorDetails(t *testing.T) {
+	e := echo.New()
+	handler := NewGlobalErrorHandler(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	appErr := apperror.NewInvalidArgument("test.op", "validation failed", nil).
+		WithDetails([]apperror.FieldViolation{{Field: "feed_url", Reason: "must be a valid URL"}})
+	handler(c, appErr)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+
+	var body struct {
+		Error struct {
+			Code    string `json:"code"`
+			Details []struct {
+				Field  string `json:"field"`
+				Reason string `json:"reason"`
+			} `json:"details"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if body.Error.Code != string(apperror.CodeInvalidArgument) {
+		t.Errorf("error.code = %q, want %q", body.Error.Code, apperror.CodeInvalidArgument)
+	}
+	if len(body.Error.Details) != 1 {
+		t.Fatalf("details = %d, want 1", len(body.Error.Details))
+	}
+	if got := body.Error.Details[0]; got.Field != "feed_url" || got.Reason != "must be a valid URL" {
+		t.Errorf("details[0] = %+v, want {feed_url, must be a valid URL}", got)
+	}
+}
+
 func TestGlobalErrorHandlerEchoHTTPError(t *testing.T) {
 	e := echo.New()
 	handler := NewGlobalErrorHandler(slog.New(slog.NewTextHandler(io.Discard, nil)))

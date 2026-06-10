@@ -31,8 +31,10 @@ type fakeFeedUsecase struct {
 	getFeed *model.Feed
 	getErr  error
 
-	listResult []*model.Feed
-	listErr    error
+	listResult  []*model.Feed
+	listNext    *model.PageCursor
+	listHasMore bool
+	listErr     error
 
 	refreshErr error
 	deleteErr  error
@@ -58,10 +60,17 @@ func (f *fakeFeedUsecase) GetFeedByID(_ context.Context, feedID uuid.UUID) (*mod
 
 func (f *fakeFeedUsecase) ListFeeds(
 	_ context.Context, cursor *model.PageCursor, limit int,
-) ([]*model.Feed, error) {
+) (*model.Page[*model.Feed], error) {
 	f.gotCursor = cursor
 	f.gotLimit = limit
-	return f.listResult, f.listErr
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return &model.Page[*model.Feed]{
+		Items:      f.listResult,
+		NextCursor: f.listNext,
+		HasMore:    f.listHasMore,
+	}, nil
 }
 
 func (f *fakeFeedUsecase) RefreshFeed(_ context.Context, feedID uuid.UUID) error {
@@ -75,10 +84,14 @@ func (f *fakeFeedUsecase) DeleteFeed(_ context.Context, feedID uuid.UUID) error 
 }
 
 type fakeArticleUsecase struct {
-	listByFeed    []*model.Article
-	listByFeedErr error
-	listAll       []*model.Article
-	listAllErr    error
+	listByFeed        []*model.Article
+	listByFeedNext    *model.PageCursor
+	listByFeedHasMore bool
+	listByFeedErr     error
+	listAll           []*model.Article
+	listAllNext       *model.PageCursor
+	listAllHasMore    bool
+	listAllErr        error
 
 	gotFeedID uuid.UUID
 	gotCursor *model.PageCursor
@@ -87,19 +100,33 @@ type fakeArticleUsecase struct {
 
 func (f *fakeArticleUsecase) ListArticlesByFeedID(
 	_ context.Context, feedID uuid.UUID, cursor *model.PageCursor, limit int,
-) ([]*model.Article, error) {
+) (*model.Page[*model.Article], error) {
 	f.gotFeedID = feedID
 	f.gotCursor = cursor
 	f.gotLimit = limit
-	return f.listByFeed, f.listByFeedErr
+	if f.listByFeedErr != nil {
+		return nil, f.listByFeedErr
+	}
+	return &model.Page[*model.Article]{
+		Items:      f.listByFeed,
+		NextCursor: f.listByFeedNext,
+		HasMore:    f.listByFeedHasMore,
+	}, nil
 }
 
 func (f *fakeArticleUsecase) ListArticles(
 	_ context.Context, cursor *model.PageCursor, limit int,
-) ([]*model.Article, error) {
+) (*model.Page[*model.Article], error) {
 	f.gotCursor = cursor
 	f.gotLimit = limit
-	return f.listAll, f.listAllErr
+	if f.listAllErr != nil {
+		return nil, f.listAllErr
+	}
+	return &model.Page[*model.Article]{
+		Items:      f.listAll,
+		NextCursor: f.listAllNext,
+		HasMore:    f.listAllHasMore,
+	}, nil
 }
 
 // quietLogger discards log output so handler warning logs do not clutter tests.
