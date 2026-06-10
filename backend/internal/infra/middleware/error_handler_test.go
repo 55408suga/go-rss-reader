@@ -85,6 +85,9 @@ func TestGlobalErrorHandlerAppErrorDetails(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
 	}
+	if body.Error.Code != string(apperror.CodeInvalidArgument) {
+		t.Errorf("error.code = %q, want %q", body.Error.Code, apperror.CodeInvalidArgument)
+	}
 	if len(body.Error.Details) != 1 {
 		t.Fatalf("details = %d, want 1", len(body.Error.Details))
 	}
