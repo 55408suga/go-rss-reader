@@ -101,6 +101,10 @@ func (i *FeedInteractor) ListFeeds(
 ) (*model.Page[*model.Feed], error) {
 	const op = "FeedInteractor.ListFeeds"
 
+	if err := validateLimit(op, limit); err != nil {
+		return nil, err
+	}
+
 	feeds, err := i.feedRepo.ListFeeds(ctx, cursor, limit+1)
 	if err != nil {
 		return nil, apperror.Wrap(err, op)

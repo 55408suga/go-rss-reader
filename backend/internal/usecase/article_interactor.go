@@ -42,6 +42,10 @@ func (i *ArticleInteractor) ListArticlesByFeedID(
 ) (*model.Page[*model.Article], error) {
 	const op = "ArticleInteractor.ListArticlesByFeedID"
 
+	if err := validateLimit(op, limit); err != nil {
+		return nil, err
+	}
+
 	articles, err := i.articleRepo.ListArticlesByFeedID(ctx, feedID, cursor, limit+1)
 	if err != nil {
 		return nil, apperror.Wrap(err, op)
@@ -58,6 +62,10 @@ func (i *ArticleInteractor) ListArticles(
 	limit int,
 ) (*model.Page[*model.Article], error) {
 	const op = "ArticleInteractor.ListArticles"
+
+	if err := validateLimit(op, limit); err != nil {
+		return nil, err
+	}
 
 	articles, err := i.articleRepo.ListArticles(ctx, cursor, limit+1)
 	if err != nil {

@@ -1,13 +1,58 @@
 package usecase
 
 import (
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"rss_reader/internal/apperror"
 	"rss_reader/internal/domain/model"
 )
+
+func TestValidateLimit(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		limit int
+		// wantMessage is the fragment that distinguishes which boundary was
+		// violated: impossible-as-a-number vs over the allowed range.
+		wantErr     bool
+		wantMessage string
+	}{
+		{name: "negative is impossible", limit: -1, wantErr: true, wantMessage: "positive integer"},
+		{name: "zero is impossible", limit: 0, wantErr: true, wantMessage: "positive integer"},
+		{name: "lower bound is allowed", limit: 1},
+		{name: "upper bound is allowed", limit: 100},
+		{name: "over ceiling is out of range", limit: 101, wantErr: true, wantMessage: "out of range"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateLimit("usecase.test", tc.limit)
+			if !tc.wantErr {
+				if err != nil {
+					t.Fatalf("validateLimit(%d) = %v, want nil", tc.limit, err)
+				}
+				return
+			}
+			var appErr *apperror.AppError
+			if !errors.As(err, &appErr) {
+				t.Fatalf("error = %v (%T), want *apperror.AppError", err, err)
+			}
+			if appErr.Code != apperror.CodeInvalidArgument {
+				t.Errorf("code = %q, want %q", appErr.Code, apperror.CodeInvalidArgument)
+			}
+			if !strings.Contains(appErr.Message, tc.wantMessage) {
+				t.Errorf("message = %q, want it to contain %q", appErr.Message, tc.wantMessage)
+			}
+		})
+	}
+}
 
 func TestPaginate(t *testing.T) {
 	t.Parallel()

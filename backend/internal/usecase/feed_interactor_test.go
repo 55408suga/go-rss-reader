@@ -202,8 +202,9 @@ func TestListFeeds(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			repo := &fakeFeedRepo{listFeeds: tc.listFeeds, listErr: tc.listErr}
 			interactor := NewFeedInteractor(
-				&fakeFeedRepo{listFeeds: tc.listFeeds, listErr: tc.listErr},
+				repo,
 				&fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, fakeTxManager{},
 			)
 			got, err := interactor.ListFeeds(context.Background(), nil, 10)
@@ -214,6 +215,10 @@ func TestListFeeds(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+			// The over-fetch is the contract that makes has_more detectable.
+			if repo.gotListLimit != 11 {
+				t.Errorf("repo limit = %d, want 11 (limit+1 over-fetch)", repo.gotListLimit)
+			}
 			if len(got.Items) != tc.wantLen {
 				t.Errorf("len = %d, want %d", len(got.Items), tc.wantLen)
 			}
@@ -221,6 +226,23 @@ func TestListFeeds(t *testing.T) {
 				t.Errorf("HasMore = %v, want %v", got.HasMore, tc.wantHasMore)
 			}
 		})
+	}
+}
+
+func TestListFeedsRejectsInvalidLimit(t *testing.T) {
+	t.Parallel()
+
+	repo := &fakeFeedRepo{}
+	interactor := NewFeedInteractor(
+		repo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, fakeTxManager{},
+	)
+
+	_, err := interactor.ListFeeds(context.Background(), nil, 0)
+
+	assertAppErrorCode(t, err, apperror.CodeInvalidArgument)
+	// The guard must fire before any repository work happens.
+	if repo.gotListLimit != 0 {
+		t.Errorf("repo called with limit %d, want no repo call", repo.gotListLimit)
 	}
 }
 
