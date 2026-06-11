@@ -15,6 +15,14 @@ SELECT EXISTS(
     SELECT 1 FROM feeds WHERE feed_url = $1
 );
 
+-- website_url は UNIQUE なのでインデックス照会。ANY で複数の正規化変形
+-- (入力そのまま / 末尾スラッシュあり・なし)を1クエリでまとめて照会する。
+-- name: GetFeedByWebsiteURL :one
+SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
+FROM feeds
+WHERE website_url = ANY(sqlc.arg('website_urls')::text[])
+LIMIT 1;
+
 -- カーソル付きと分割しなきゃsqlcの型変換がうまくいかない
 -- name: ListFeeds :many
 SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language

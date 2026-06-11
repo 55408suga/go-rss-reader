@@ -34,11 +34,24 @@ type fakeFeedRepo struct {
 	updateErr    error
 	deleteErr    error
 
-	checkCalls   int
-	savedFeeds   []*model.Feed
-	updatedFeeds []*model.Feed
-	deletedIDs   []uuid.UUID
-	gotListLimit int
+	byWebsiteFeed *model.Feed
+	byWebsiteErr  error
+
+	checkCalls     int
+	byWebsiteCalls int
+	gotWebsiteURLs []string
+	savedFeeds     []*model.Feed
+	updatedFeeds   []*model.Feed
+	deletedIDs     []uuid.UUID
+	gotListLimit   int
+}
+
+func (f *fakeFeedRepo) GetFeedByWebsiteURL(_ context.Context, websiteURLs []string) (*model.Feed, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.byWebsiteCalls++
+	f.gotWebsiteURLs = websiteURLs
+	return f.byWebsiteFeed, f.byWebsiteErr
 }
 
 func (f *fakeFeedRepo) CheckFeedExistsByURL(_ context.Context, _ string) (bool, error) {
