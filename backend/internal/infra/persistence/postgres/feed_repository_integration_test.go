@@ -47,6 +47,45 @@ func TestFeedRepositoryRoundTrip(t *testing.T) {
 	}
 }
 
+func TestFeedRepositoryGetFeedByWebsiteURL(t *testing.T) {
+	resetDB(t)
+	ctx := context.Background()
+	repo := NewFeedRepository(testPool, quietLogger())
+
+	feed := makeFeed(t, "wsu") // website_url = https://example.com/wsu
+	if err := repo.SaveFeed(ctx, feed); err != nil {
+		t.Fatalf("SaveFeed: %v", err)
+	}
+
+	t.Run("exact match", func(t *testing.T) {
+		got, err := repo.GetFeedByWebsiteURL(ctx, []string{"https://example.com/wsu"})
+		if err != nil {
+			t.Fatalf("GetFeedByWebsiteURL: %v", err)
+		}
+		if got.ID != feed.ID {
+			t.Errorf("ID = %s, want %s", got.ID, feed.ID)
+		}
+	})
+
+	t.Run("match via one of several variants", func(t *testing.T) {
+		got, err := repo.GetFeedByWebsiteURL(ctx, []string{
+			"https://example.com/wsu/",
+			"https://example.com/wsu",
+		})
+		if err != nil {
+			t.Fatalf("GetFeedByWebsiteURL: %v", err)
+		}
+		if got.ID != feed.ID {
+			t.Errorf("ID = %s, want %s", got.ID, feed.ID)
+		}
+	})
+
+	t.Run("absent is not_found", func(t *testing.T) {
+		_, err := repo.GetFeedByWebsiteURL(ctx, []string{"https://absent.example/"})
+		assertAppErrorCode(t, err, apperror.CodeNotFound)
+	})
+}
+
 func TestFeedRepositoryDuplicateURLConflict(t *testing.T) {
 	resetDB(t)
 	ctx := context.Background()
