@@ -131,6 +131,18 @@ func TestRouterStatusMatrix(t *testing.T) {
 			wantStatus: http.StatusCreated,
 		},
 		{
+			name:   "discover feed returns 201",
+			method: http.MethodPost,
+			target: "/api/v1/feeds/discover",
+			body:   `{"website_url":"https://example.com/blog"}`,
+			feedUC: &stubFeedUsecase{
+				feed:       &model.Feed{ID: feedID},
+				articles:   []*model.Article{},
+				candidates: []model.FeedCandidate{{FeedURL: "https://example.com/feed.xml"}},
+			},
+			wantStatus: http.StatusCreated,
+		},
+		{
 			name:       "list feeds returns 200",
 			method:     http.MethodGet,
 			target:     "/api/v1/feeds",
