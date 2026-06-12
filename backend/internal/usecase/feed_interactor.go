@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -16,6 +18,7 @@ type FeedInteractor struct {
 	articleRepo    repository.ArticleRepository
 	feedStatusRepo repository.FetchStatusRepository
 	fetcher        RSSFetcher
+	discoverer     FeedDiscoverer
 	txManager      TransactionManager
 }
 
@@ -25,6 +28,7 @@ func NewFeedInteractor(
 	articleRepo repository.ArticleRepository,
 	feedStatusRepo repository.FetchStatusRepository,
 	fetcher RSSFetcher,
+	discoverer FeedDiscoverer,
 	txManager TransactionManager,
 ) *FeedInteractor {
 	return &FeedInteractor{
@@ -32,6 +36,7 @@ func NewFeedInteractor(
 		articleRepo:    articleRepo,
 		feedStatusRepo: feedStatusRepo,
 		fetcher:        fetcher,
+		discoverer:     discoverer,
 		txManager:      txManager,
 	}
 }
@@ -77,6 +82,58 @@ func (i *FeedInteractor) RegisterFeed(ctx context.Context, feedURL string) (*mod
 	}
 
 	return feed, articles, nil
+}
+
+// DiscoverAndRegisterFeed resolves a website URL to its advertised feed and
+// subscribes to it: a DB fast path detects already-subscribed websites
+// without touching the network, then the HTML is scanned for autodiscovery
+// links and the first (highest-priority) candidate is registered through the
+// existing RegisterFeed flow. All discovered candidates are returned so the
+// caller can offer alternatives.
+func (i *FeedInteractor) DiscoverAndRegisterFeed(
+	ctx context.Context,
+	websiteURL string,
+) (*model.Feed, []*model.Article, []model.FeedCandidate, error) {
+	const op = "FeedInteractor.DiscoverAndRegisterFeed"
+
+	_, err := i.feedRepo.GetFeedByWebsiteURL(ctx, websiteURLVariants(websiteURL))
+	if err == nil {
+		return nil, nil, nil, apperror.NewConflict(op, "this website is already subscribed", nil)
+	}
+	var appErr *apperror.AppError
+	if !errors.As(err, &appErr) || appErr.Code != apperror.CodeNotFound {
+		return nil, nil, nil, apperror.Wrap(err, op)
+	}
+	// not_found here means "not subscribed yet": fall through to discovery.
+
+	candidates, err := i.discoverer.DiscoverFeedURLs(ctx, websiteURL)
+	if err != nil {
+		return nil, nil, nil, apperror.Wrap(err, op)
+	}
+	if len(candidates) == 0 {
+		// Defensive: the gateway classifies this itself, but a discoverer
+		// returning (nil, nil) must not panic on candidates[0] below.
+		return nil, nil, nil, apperror.NewNotFound(op, "no rss/atom feed found at this website", nil)
+	}
+
+	feed, articles, err := i.RegisterFeed(ctx, candidates[0].FeedURL)
+	if err != nil {
+		return nil, nil, nil, apperror.Wrap(err, op)
+	}
+
+	return feed, articles, candidates, nil
+}
+
+// websiteURLVariants returns the input URL plus its trailing-slash twin, so
+// the single-query DB fast path tolerates the most common mismatch between
+// what users type and the channel link the feed self-reported. A DB miss is
+// not proof the site is unsubscribed — RegisterFeed's feed_url check stays
+// the source of truth.
+func websiteURLVariants(websiteURL string) []string {
+	if bare, ok := strings.CutSuffix(websiteURL, "/"); ok {
+		return []string{websiteURL, bare}
+	}
+	return []string{websiteURL, websiteURL + "/"}
 }
 
 // GetFeedByID returns a feed by its ID.

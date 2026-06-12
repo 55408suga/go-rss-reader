@@ -41,11 +41,15 @@ func NewApplicationComponents(cfg *config.Config, logger *slog.Logger) (*Applica
 	articleRepo := postgres.NewArticleRepository(db, logger)
 	feedStatusRepo := postgres.NewFetchStatusRepository(db, logger)
 
-	rssGateway := gateway.NewRSSGateway(gateway.NewHTTPClient(), logger)
+	httpClient := gateway.NewHTTPClient()
+	rssGateway := gateway.NewRSSGateway(httpClient, logger)
+	discoveryGateway := gateway.NewDiscoveryGateway(httpClient, logger)
 
 	txManager := postgres.NewPgTransactionManager(db, logger)
 
-	feedUC := usecase.NewFeedInteractor(feedRepo, articleRepo, feedStatusRepo, rssGateway, txManager)
+	feedUC := usecase.NewFeedInteractor(
+		feedRepo, articleRepo, feedStatusRepo, rssGateway, discoveryGateway, txManager,
+	)
 	articleUC := usecase.NewArticleInteractor(articleRepo)
 	feedJobUC := usecase.NewFeedJobInteractor(
 		rssGateway, articleRepo, feedStatusRepo, txManager, logger,

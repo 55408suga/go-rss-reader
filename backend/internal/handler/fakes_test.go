@@ -28,6 +28,11 @@ type fakeFeedUsecase struct {
 	registerArticles []*model.Article
 	registerErr      error
 
+	discoverFeed       *model.Feed
+	discoverArticles   []*model.Article
+	discoverCandidates []model.FeedCandidate
+	discoverErr        error
+
 	getFeed *model.Feed
 	getErr  error
 
@@ -51,6 +56,13 @@ func (f *fakeFeedUsecase) RegisterFeed(
 ) (*model.Feed, []*model.Article, error) {
 	f.gotURL = feedURL
 	return f.registerFeed, f.registerArticles, f.registerErr
+}
+
+func (f *fakeFeedUsecase) DiscoverAndRegisterFeed(
+	_ context.Context, websiteURL string,
+) (*model.Feed, []*model.Article, []model.FeedCandidate, error) {
+	f.gotURL = websiteURL
+	return f.discoverFeed, f.discoverArticles, f.discoverCandidates, f.discoverErr
 }
 
 func (f *fakeFeedUsecase) GetFeedByID(_ context.Context, feedID uuid.UUID) (*model.Feed, error) {

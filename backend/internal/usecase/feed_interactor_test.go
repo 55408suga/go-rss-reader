@@ -89,7 +89,7 @@ func TestRegisterFeed(t *testing.T) {
 				newErr:      tc.fetchErr,
 			}
 
-			interactor := NewFeedInteractor(feedRepo, articleRepo, statusRepo, fetcher, fakeTxManager{})
+			interactor := NewFeedInteractor(feedRepo, articleRepo, statusRepo, fetcher, &fakeDiscoverer{}, fakeTxManager{})
 
 			feed, gotArticles, err := interactor.RegisterFeed(context.Background(), feedURL)
 
@@ -152,7 +152,7 @@ func TestGetFeedByID(t *testing.T) {
 			t.Parallel()
 			interactor := NewFeedInteractor(
 				&fakeFeedRepo{getFeed: tc.getFeed, getErr: tc.getErr},
-				&fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, fakeTxManager{},
+				&fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, &fakeDiscoverer{}, fakeTxManager{},
 			)
 			got, err := interactor.GetFeedByID(context.Background(), uuid.New())
 			if tc.wantErr {
@@ -205,7 +205,7 @@ func TestListFeeds(t *testing.T) {
 			repo := &fakeFeedRepo{listFeeds: tc.listFeeds, listErr: tc.listErr}
 			interactor := NewFeedInteractor(
 				repo,
-				&fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, fakeTxManager{},
+				&fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, &fakeDiscoverer{}, fakeTxManager{},
 			)
 			got, err := interactor.ListFeeds(context.Background(), nil, 10)
 			if tc.wantErr {
@@ -234,7 +234,7 @@ func TestListFeedsRejectsInvalidLimit(t *testing.T) {
 
 	repo := &fakeFeedRepo{}
 	interactor := NewFeedInteractor(
-		repo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, fakeTxManager{},
+		repo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, &fakeDiscoverer{}, fakeTxManager{},
 	)
 
 	_, err := interactor.ListFeeds(context.Background(), nil, 0)
@@ -265,7 +265,7 @@ func TestRefreshFeed(t *testing.T) {
 			newArticles: []*model.Article{article},
 			newCursor:   &model.FeedCursor{},
 		}
-		interactor := NewFeedInteractor(feedRepo, articleRepo, statusRepo, fetcher, fakeTxManager{})
+		interactor := NewFeedInteractor(feedRepo, articleRepo, statusRepo, fetcher, &fakeDiscoverer{}, fakeTxManager{})
 
 		if err := interactor.RefreshFeed(context.Background(), existingID); err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -335,7 +335,7 @@ func TestRefreshFeed(t *testing.T) {
 					newErr:    tc.fetchErr,
 				}
 				interactor := NewFeedInteractor(
-					feedRepo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, fetcher, fakeTxManager{},
+					feedRepo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, fetcher, &fakeDiscoverer{}, fakeTxManager{},
 				)
 				err := interactor.RefreshFeed(context.Background(), uuid.New())
 				assertAppErrorCode(t, err, tc.wantCode)
@@ -373,7 +373,7 @@ func TestDeleteFeed(t *testing.T) {
 			t.Parallel()
 			feedRepo := &fakeFeedRepo{deleteErr: tc.deleteErr}
 			interactor := NewFeedInteractor(
-				feedRepo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, fakeTxManager{},
+				feedRepo, &fakeArticleRepo{}, &fakeFetchStatusRepo{}, &fakeFetcher{}, &fakeDiscoverer{}, fakeTxManager{},
 			)
 			id := uuid.New()
 			err := interactor.DeleteFeed(context.Background(), id)

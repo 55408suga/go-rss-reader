@@ -30,16 +30,23 @@ var (
 )
 
 type stubFeedUsecase struct {
-	feed     *model.Feed
-	articles []*model.Article
-	feeds    []*model.Feed
-	err      error
+	feed       *model.Feed
+	articles   []*model.Article
+	feeds      []*model.Feed
+	candidates []model.FeedCandidate
+	err        error
 }
 
 func (s *stubFeedUsecase) RegisterFeed(
 	context.Context, string,
 ) (*model.Feed, []*model.Article, error) {
 	return s.feed, s.articles, s.err
+}
+
+func (s *stubFeedUsecase) DiscoverAndRegisterFeed(
+	context.Context, string,
+) (*model.Feed, []*model.Article, []model.FeedCandidate, error) {
+	return s.feed, s.articles, s.candidates, s.err
 }
 
 func (s *stubFeedUsecase) GetFeedByID(context.Context, uuid.UUID) (*model.Feed, error) {
