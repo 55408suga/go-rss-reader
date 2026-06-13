@@ -153,6 +153,13 @@ func TestDiscoverAndRegisterFeedWebsiteURLVariants(t *testing.T) {
 			input: "https://example.com/blog/",
 			want:  []string{"https://example.com/blog/", "https://example.com/blog"},
 		},
+		{
+			// Appending "/" after a query string would build a URL no feed's
+			// channel link ever reports; complex URLs get no twin.
+			name:  "input with query string is looked up as-is only",
+			input: "https://example.com/blog?page=1",
+			want:  []string{"https://example.com/blog?page=1"},
+		},
 	}
 
 	for _, tc := range tests {

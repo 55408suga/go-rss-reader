@@ -70,6 +70,19 @@ func TestDiscoveryGatewayDiscoverFeedURLs(t *testing.T) {
 			},
 		},
 		{
+			// The href is attacker-controlled (their own HTML); a non-http(s)
+			// candidate must never reach the second server-side fetch.
+			name: "excludes candidates with non-http schemes",
+			html: `<html><head>
+<link rel="alternate" type="application/rss+xml" href="file:///etc/passwd">
+<link rel="alternate" type="application/rss+xml" href="javascript:alert(1)">
+<link rel="alternate" type="application/rss+xml" href="/safe.xml">
+</head><body></body></html>`,
+			want: []model.FeedCandidate{
+				{FeedURL: "{base}/safe.xml", MIMEType: "application/rss+xml"},
+			},
+		},
+		{
 			name:     "no feed link yields not_found",
 			html:     `<html><head><title>plain</title></head><body></body></html>`,
 			wantCode: apperror.CodeNotFound,

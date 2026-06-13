@@ -155,6 +155,29 @@ func TestFeedHandlerDiscoverAndRegisterFeedNormalizesNilArticles(t *testing.T) {
 	}
 }
 
+// A FeedUsecase implementation returning nil candidates on success must not
+// leak data.candidates:null — the envelope contract requires [] (the
+// interactor happens to guarantee non-empty today, but the serialization
+// boundary must not depend on that cross-layer invariant).
+func TestFeedHandlerDiscoverAndRegisterFeedNormalizesNilCandidates(t *testing.T) {
+	t.Parallel()
+
+	c, rec := newEchoContext(t, http.MethodPost, "/api/v1/feeds/discover",
+		`{"website_url":"https://example.com/blog"}`)
+	h := NewFeedHandler(&fakeFeedUsecase{
+		discoverFeed:       &model.Feed{ID: uuid.New()},
+		discoverArticles:   []*model.Article{},
+		discoverCandidates: nil,
+	}, quietLogger())
+
+	if err := h.DiscoverAndRegisterFeed(c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(rec.Body.String(), `"candidates":[]`) {
+		t.Errorf("candidates must serialize as [], got body: %s", rec.Body.String())
+	}
+}
+
 // assertDetailsField fails unless err is an AppError carrying a field
 // violation for want.
 func assertDetailsField(t *testing.T, err error, want string) {
