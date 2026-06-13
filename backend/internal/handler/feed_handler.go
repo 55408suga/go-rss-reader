@@ -95,6 +95,10 @@ func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "validation failed", err).
 			WithDetails(validationDetails(err))
 	}
+	if err := requireHTTPScheme(op, "feed_url", req.FeedURL); err != nil {
+		logger.WarnContext(ctx, "request validation failed", "error", err)
+		return err
+	}
 
 	feed, articles, err := h.feedUsecase.RegisterFeed(ctx, req.FeedURL)
 	if err != nil {
@@ -140,6 +144,9 @@ func (h *FeedHandler) DiscoverAndRegisterFeed(c *echo.Context) error {
 
 	if articles == nil {
 		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
+	if candidates == nil {
+		candidates = []model.FeedCandidate{} // emit data.candidates:[] rather than null
 	}
 	return respondData(c, http.StatusCreated, DiscoverFeedResponse{
 		Feed:       feed,

@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
@@ -126,14 +127,24 @@ func (i *FeedInteractor) DiscoverAndRegisterFeed(
 
 // websiteURLVariants returns the input URL plus its trailing-slash twin, so
 // the single-query DB fast path tolerates the most common mismatch between
-// what users type and the channel link the feed self-reported. A DB miss is
-// not proof the site is unsubscribed — RegisterFeed's feed_url check stays
-// the source of truth.
+// what users type and the channel link the feed self-reported. The slash is
+// toggled on the path component only; URLs with a query or fragment (or that
+// fail to parse) get no twin — appending "/" after "?page=1" would build a
+// URL no feed ever self-reports. A DB miss is not proof the site is
+// unsubscribed — RegisterFeed's feed_url check stays the source of truth.
 func websiteURLVariants(websiteURL string) []string {
-	if bare, ok := strings.CutSuffix(websiteURL, "/"); ok {
-		return []string{websiteURL, bare}
+	parsed, err := url.Parse(websiteURL)
+	if err != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return []string{websiteURL}
 	}
-	return []string{websiteURL, websiteURL + "/"}
+
+	twin := *parsed
+	if bare, ok := strings.CutSuffix(parsed.Path, "/"); ok {
+		twin.Path = bare
+	} else {
+		twin.Path += "/"
+	}
+	return []string{websiteURL, twin.String()}
 }
 
 // GetFeedByID returns a feed by its ID.

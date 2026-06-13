@@ -107,7 +107,12 @@ func (dg *DiscoveryGateway) DiscoverFeedURLs(
 	// URL the caller passed in.
 	baseURL := resp.Request.URL
 
-	candidates := scanFeedLinks(io.LimitReader(resp.Body, maxDiscoveryHTMLBytes), baseURL)
+	limitedBody := io.LimitReader(resp.Body, maxDiscoveryHTMLBytes)
+	candidates := scanFeedLinks(limitedBody, baseURL)
+	// Drain the (limit-capped) remainder so the shared transport can return
+	// the connection to its keep-alive pool; the scanner stops at </head>.
+	_, _ = io.Copy(io.Discard, limitedBody)
+
 	if len(candidates) == 0 {
 		return nil, apperror.NewNotFound(op, "no rss/atom feed found at this website", nil)
 	}
@@ -202,9 +207,16 @@ func feedCandidateFromLink(
 	if err != nil {
 		return model.FeedCandidate{}, false
 	}
+	resolved := baseURL.ResolveReference(hrefURL)
+	// The href comes from the fetched page, i.e. it is attacker-controlled.
+	// Candidates feed straight into a second server-side fetch (RegisterFeed),
+	// so anything outside http/https is dropped here, not at Do() time.
+	if resolved.Scheme != "http" && resolved.Scheme != "https" {
+		return model.FeedCandidate{}, false
+	}
 
 	return model.FeedCandidate{
-		FeedURL:  baseURL.ResolveReference(hrefURL).String(),
+		FeedURL:  resolved.String(),
 		Title:    title,
 		MIMEType: mimeType,
 	}, true
