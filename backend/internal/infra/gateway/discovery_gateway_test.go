@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -200,6 +201,38 @@ func TestDiscoveryGatewayUnreachableServer(t *testing.T) {
 
 	gateway := NewDiscoveryGateway(nil, quietLogger())
 	_, err := gateway.DiscoverFeedURLs(context.Background(), url)
+	assertAppErrorCode(t, err, apperror.CodeExternalUnavailable)
+}
+
+// A connection dropped mid-body is an external failure, not "no feed here":
+// it must surface as external_unavailable, never not_found.
+func TestDiscoveryGatewayTruncatedBodyIsExternalUnavailable(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			t.Errorf("ResponseWriter does not support hijacking")
+			return
+		}
+		conn, _, err := hj.Hijack()
+		if err != nil {
+			t.Errorf("hijack: %v", err)
+			return
+		}
+		// Promise more bytes than we deliver, then drop the connection so the
+		// client reads a truncated body (io.ErrUnexpectedEOF) mid-<head>.
+		_, _ = io.WriteString(conn, "HTTP/1.1 200 OK\r\n"+
+			"Content-Type: text/html\r\n"+
+			"Content-Length: 4096\r\n"+
+			"\r\n"+
+			"<html><head>")
+		_ = conn.Close()
+	}))
+	defer server.Close()
+
+	gateway := NewDiscoveryGateway(server.Client(), quietLogger())
+	_, err := gateway.DiscoverFeedURLs(context.Background(), server.URL)
 	assertAppErrorCode(t, err, apperror.CodeExternalUnavailable)
 }
 

@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -108,7 +109,16 @@ func (dg *DiscoveryGateway) DiscoverFeedURLs(
 	baseURL := resp.Request.URL
 
 	limitedBody := io.LimitReader(resp.Body, maxDiscoveryHTMLBytes)
-	candidates := scanFeedLinks(limitedBody, baseURL)
+	candidates, scanErr := scanFeedLinks(limitedBody, baseURL)
+	if scanErr != nil {
+		// A truncated/failed read is an external problem, not "no feed here".
+		applogger.WithContext(ctx, dg.logger).WarnContext(ctx,
+			"website html read failed during scan",
+			"website_url", websiteURL,
+			"error", scanErr,
+		)
+		return nil, apperror.NewExternalUnavailable(op, "failed to read website html", scanErr)
+	}
 	// Drain the (limit-capped) remainder so the shared transport can return
 	// the connection to its keep-alive pool; the scanner stops at </head>.
 	_, _ = io.Copy(io.Discard, limitedBody)
@@ -140,23 +150,30 @@ func isHTMLContentType(contentType string) bool {
 // elements, stopping at </head>, <body>, or end of (possibly truncated)
 // input. The tokenizer never builds a DOM, so a huge page costs only the
 // bytes actually read.
-func scanFeedLinks(htmlBody io.Reader, baseURL *url.URL) []model.FeedCandidate {
+func scanFeedLinks(htmlBody io.Reader, baseURL *url.URL) ([]model.FeedCandidate, error) {
 	tokenizer := html.NewTokenizer(htmlBody)
 	var candidates []model.FeedCandidate
 
 	for {
 		switch tokenizer.Next() {
 		case html.ErrorToken:
-			// EOF, the 1MiB cap, or malformed HTML: return what we found.
-			return candidates
+			// The tokenizer stops here for reasons that must NOT be treated
+			// alike: a clean EOF and the 1MiB LimitReader cap (which also
+			// surfaces as io.EOF) mean "we read all the head we were given",
+			// but any other error is a truncated/failed read that the caller
+			// must classify as external_unavailable instead of not_found.
+			if err := tokenizer.Err(); err != nil && !errors.Is(err, io.EOF) {
+				return candidates, err
+			}
+			return candidates, nil
 		case html.EndTagToken:
 			if name, _ := tokenizer.TagName(); string(name) == "head" {
-				return candidates
+				return candidates, nil
 			}
 		case html.StartTagToken, html.SelfClosingTagToken:
 			name, hasAttr := tokenizer.TagName()
 			if string(name) == "body" {
-				return candidates
+				return candidates, nil
 			}
 			if string(name) != "link" || !hasAttr {
 				continue
@@ -211,6 +228,8 @@ func feedCandidateFromLink(
 	// The href comes from the fetched page, i.e. it is attacker-controlled.
 	// Candidates feed straight into a second server-side fetch (RegisterFeed),
 	// so anything outside http/https is dropped here, not at Do() time.
+	// (resolved.Scheme is already lowercased: url.Parse normalizes it, so an
+	// uppercase "HTTPS" href compares equal here without EqualFold.)
 	if resolved.Scheme != "http" && resolved.Scheme != "https" {
 		return model.FeedCandidate{}, false
 	}
