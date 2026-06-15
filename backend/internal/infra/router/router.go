@@ -13,6 +13,7 @@ func SetupRoutes(e *echo.Echo, components *di.ApplicationComponents) {
 	v1 := api.Group("/v1")
 	// Feed routes
 	v1.POST("/feeds", components.FeedHandler.RegisterFeed)
+	v1.POST("/feeds/discover", components.FeedHandler.DiscoverAndRegisterFeed)
 	v1.GET("/feeds", components.FeedHandler.ListFeeds)
 	v1.GET("/feeds/:id", components.FeedHandler.GetFeedByID)
 	v1.POST("/feeds/:id/refresh", components.FeedHandler.RefreshFeed)

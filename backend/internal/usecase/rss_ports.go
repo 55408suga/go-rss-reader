@@ -22,6 +22,11 @@ import (
 // FeedUsecase defines feed-related use cases driven by HTTP handlers.
 type FeedUsecase interface {
 	RegisterFeed(ctx context.Context, feedURL string) (*model.Feed, []*model.Article, error)
+	// DiscoverAndRegisterFeed finds feed URLs in the website's HTML and
+	// registers the first candidate, returning every discovered candidate
+	// (the registered one first) alongside the new feed and its articles.
+	DiscoverAndRegisterFeed(ctx context.Context, websiteURL string) (
+		*model.Feed, []*model.Article, []model.FeedCandidate, error)
 	GetFeedByID(ctx context.Context, feedID uuid.UUID) (*model.Feed, error)
 	ListFeeds(ctx context.Context, cursor *model.PageCursor, limit int) (*model.Page[*model.Feed], error)
 	RefreshFeed(ctx context.Context, feedID uuid.UUID) error
@@ -47,6 +52,12 @@ type FeedJobUsecase interface {
 // =====================================================================
 // Output ports — implemented by infra/, consumed by Interactors
 // =====================================================================
+
+// FeedDiscoverer discovers feed URLs from a website's HTML head.
+// Implemented by gateway.DiscoveryGateway.
+type FeedDiscoverer interface {
+	DiscoverFeedURLs(ctx context.Context, websiteURL string) ([]model.FeedCandidate, error)
+}
 
 // RSSFetcher fetches feed metadata and articles from external RSS sources.
 // Implemented by gateway.RSSGateway.

@@ -4,6 +4,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -26,6 +27,12 @@ type RegisterFeedRequest struct {
 	FeedURL string `json:"feed_url" validate:"required,url"`
 }
 
+// DiscoverFeedRequest is the payload for discovering and subscribing a
+// website's advertised feed.
+type DiscoverFeedRequest struct {
+	WebsiteURL string `json:"website_url" validate:"required,url"`
+}
+
 // ListFeedsRequest is the query params for listing feeds with pagination.
 type ListFeedsRequest struct {
 	Cursor string `query:"cursor"` // opaque pagination token (empty = first page)
@@ -36,6 +43,15 @@ type ListFeedsRequest struct {
 type RegisterFeedResponse struct {
 	Feed     *model.Feed      `json:"feed"`
 	Articles []*model.Article `json:"articles"`
+}
+
+// DiscoverFeedResponse is the data payload after autodiscovery registration.
+// Candidates holds every feed link found in the page (the registered one
+// first) so clients can offer alternatives via POST /feeds.
+type DiscoverFeedResponse struct {
+	Feed       *model.Feed           `json:"feed"`
+	Articles   []*model.Article      `json:"articles"`
+	Candidates []model.FeedCandidate `json:"candidates"`
 }
 
 // feedListData is the data payload for a paginated feed list.
@@ -79,6 +95,10 @@ func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 		return apperror.NewInvalidArgument(op, "validation failed", err).
 			WithDetails(validationDetails(err))
 	}
+	if err := requireHTTPScheme(op, "feed_url", req.FeedURL); err != nil {
+		logger.WarnContext(ctx, "request validation failed", "error", err)
+		return err
+	}
 
 	feed, articles, err := h.feedUsecase.RegisterFeed(ctx, req.FeedURL)
 	if err != nil {
@@ -92,6 +112,62 @@ func (h *FeedHandler) RegisterFeed(c *echo.Context) error {
 		Feed:     feed,
 		Articles: articles,
 	})
+}
+
+// DiscoverAndRegisterFeed validates a website URL, discovers its advertised
+// feed via HTML autodiscovery, and subscribes to the first candidate.
+func (h *FeedHandler) DiscoverAndRegisterFeed(c *echo.Context) error {
+	const op = "FeedHandler.DiscoverAndRegisterFeed"
+	ctx := c.Request().Context()
+	logger := applogger.WithContext(ctx, h.logger)
+
+	var req DiscoverFeedRequest
+	if err := c.Bind(&req); err != nil {
+		logger.WarnContext(ctx, "invalid request body", "error", err)
+		return apperror.NewInvalidArgument(op, "invalid request body", err)
+	}
+
+	if err := requestValidator.Struct(req); err != nil {
+		logger.WarnContext(ctx, "request validation failed", "error", err)
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails(validationDetails(err))
+	}
+	if err := requireHTTPScheme(op, "website_url", req.WebsiteURL); err != nil {
+		logger.WarnContext(ctx, "request validation failed", "error", err)
+		return err
+	}
+
+	feed, articles, candidates, err := h.feedUsecase.DiscoverAndRegisterFeed(ctx, req.WebsiteURL)
+	if err != nil {
+		return apperror.Wrap(err, op)
+	}
+
+	if articles == nil {
+		articles = []*model.Article{} // emit data.articles:[] rather than null
+	}
+	if candidates == nil {
+		candidates = []model.FeedCandidate{} // emit data.candidates:[] rather than null
+	}
+	return respondData(c, http.StatusCreated, DiscoverFeedResponse{
+		Feed:       feed,
+		Articles:   articles,
+		Candidates: candidates,
+	})
+}
+
+// requireHTTPScheme rejects URLs whose scheme is not http/https. The url
+// validator tag accepts any scheme (ftp, file, ...), but the discovery
+// gateway must only ever fetch web pages (SSRF surface), so the allowlist
+// is enforced here at the boundary.
+func requireHTTPScheme(op, field, rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return apperror.NewInvalidArgument(op, "validation failed", err).
+			WithDetails([]apperror.FieldViolation{
+				{Field: field, Reason: "must be an http or https URL"},
+			})
+	}
+	return nil
 }
 
 // ListFeeds returns one page of registered feeds.

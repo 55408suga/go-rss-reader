@@ -80,6 +80,30 @@ func (r *FeedRepository) GetFeedByID(ctx context.Context, feedID uuid.UUID) (*mo
 	}, nil
 }
 
+// GetFeedByWebsiteURL retrieves a feed whose website_url matches any of the
+// given URL variants (caller passes the input URL plus trailing-slash forms).
+// A miss is classified as not_found by classifyDBError; callers treating a
+// miss as "not subscribed yet" must check the code and continue.
+func (r *FeedRepository) GetFeedByWebsiteURL(ctx context.Context, websiteURLs []string) (*model.Feed, error) {
+	const op = "FeedRepository.GetFeedByWebsiteURL"
+
+	feed, err := r.querier(ctx).GetFeedByWebsiteURL(ctx, websiteURLs)
+	if err != nil {
+		return nil, wrapAndLogDBError(ctx, r.logger, op, err)
+	}
+
+	return &model.Feed{
+		ID:           feed.ID,
+		Title:        feed.Title,
+		RegisteredAt: feed.RegisteredAt,
+		UpdatedAt:    feed.UpdatedAt,
+		FeedURL:      feed.FeedUrl,
+		WebsiteURL:   feed.WebsiteUrl,
+		Description:  feed.Description,
+		Language:     feed.Language,
+	}, nil
+}
+
 // CheckFeedExistsByURL reports whether a feed with the given URL exists.
 func (r *FeedRepository) CheckFeedExistsByURL(ctx context.Context, feedURL string) (bool, error) {
 	const op = "FeedRepository.CheckFeedExistsByURL"

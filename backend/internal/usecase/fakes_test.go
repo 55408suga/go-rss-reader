@@ -34,11 +34,24 @@ type fakeFeedRepo struct {
 	updateErr    error
 	deleteErr    error
 
-	checkCalls   int
-	savedFeeds   []*model.Feed
-	updatedFeeds []*model.Feed
-	deletedIDs   []uuid.UUID
-	gotListLimit int
+	byWebsiteFeed *model.Feed
+	byWebsiteErr  error
+
+	checkCalls     int
+	byWebsiteCalls int
+	gotWebsiteURLs []string
+	savedFeeds     []*model.Feed
+	updatedFeeds   []*model.Feed
+	deletedIDs     []uuid.UUID
+	gotListLimit   int
+}
+
+func (f *fakeFeedRepo) GetFeedByWebsiteURL(_ context.Context, websiteURLs []string) (*model.Feed, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.byWebsiteCalls++
+	f.gotWebsiteURLs = websiteURLs
+	return f.byWebsiteFeed, f.byWebsiteErr
 }
 
 func (f *fakeFeedRepo) CheckFeedExistsByURL(_ context.Context, _ string) (bool, error) {
@@ -164,6 +177,28 @@ func (f *fakeFetchStatusRepo) GetDueFeeds(
 	return f.dueFeeds, f.dueErr
 }
 
+// --- FeedDiscoverer ---
+
+type fakeDiscoverer struct {
+	mu sync.Mutex
+
+	candidates []model.FeedCandidate
+	err        error
+
+	calls  int
+	gotURL string
+}
+
+func (f *fakeDiscoverer) DiscoverFeedURLs(
+	_ context.Context, websiteURL string,
+) ([]model.FeedCandidate, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.calls++
+	f.gotURL = websiteURL
+	return f.candidates, f.err
+}
+
 // --- RSSFetcher ---
 
 type fakeFetcher struct {
@@ -172,8 +207,9 @@ type fakeFetcher struct {
 	newCursor   *model.FeedCursor
 	newErr      error
 
-	mu       sync.Mutex
-	newCalls int
+	mu        sync.Mutex
+	newCalls  int
+	gotNewURL string
 
 	// withCursorFunc lets the job tests vary behaviour per feed URL. It is set
 	// before use and never mutated during a call, so it is read without locking.
@@ -183,11 +219,12 @@ type fakeFetcher struct {
 }
 
 func (f *fakeFetcher) FetchNewFeed(
-	_ context.Context, _ string,
+	_ context.Context, feedURL string,
 ) (*model.Feed, []*model.Article, *model.FeedCursor, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.newCalls++
+	f.gotNewURL = feedURL
 	return f.newFeed, f.newArticles, f.newCursor, f.newErr
 }
 

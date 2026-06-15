@@ -30,16 +30,23 @@ var (
 )
 
 type stubFeedUsecase struct {
-	feed     *model.Feed
-	articles []*model.Article
-	feeds    []*model.Feed
-	err      error
+	feed       *model.Feed
+	articles   []*model.Article
+	feeds      []*model.Feed
+	candidates []model.FeedCandidate
+	err        error
 }
 
 func (s *stubFeedUsecase) RegisterFeed(
 	context.Context, string,
 ) (*model.Feed, []*model.Article, error) {
 	return s.feed, s.articles, s.err
+}
+
+func (s *stubFeedUsecase) DiscoverAndRegisterFeed(
+	context.Context, string,
+) (*model.Feed, []*model.Article, []model.FeedCandidate, error) {
+	return s.feed, s.articles, s.candidates, s.err
 }
 
 func (s *stubFeedUsecase) GetFeedByID(context.Context, uuid.UUID) (*model.Feed, error) {
@@ -121,6 +128,18 @@ func TestRouterStatusMatrix(t *testing.T) {
 			target:     "/api/v1/feeds",
 			body:       `{"feed_url":"https://example.com/feed.xml"}`,
 			feedUC:     &stubFeedUsecase{feed: &model.Feed{ID: feedID}, articles: []*model.Article{}},
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name:   "discover feed returns 201",
+			method: http.MethodPost,
+			target: "/api/v1/feeds/discover",
+			body:   `{"website_url":"https://example.com/blog"}`,
+			feedUC: &stubFeedUsecase{
+				feed:       &model.Feed{ID: feedID},
+				articles:   []*model.Article{},
+				candidates: []model.FeedCandidate{{FeedURL: "https://example.com/feed.xml"}},
+			},
 			wantStatus: http.StatusCreated,
 		},
 		{

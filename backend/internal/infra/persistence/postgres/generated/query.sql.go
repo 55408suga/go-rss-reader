@@ -148,6 +148,31 @@ func (q *Queries) GetFeedByID(ctx context.Context, id uuid.UUID) (Feed, error) {
 	return i, err
 }
 
+const getFeedByWebsiteURL = `-- name: GetFeedByWebsiteURL :one
+SELECT id, title, registered_at, updated_at, feed_url, website_url, description, language
+FROM feeds
+WHERE website_url = ANY($1::text[])
+LIMIT 1
+`
+
+// website_url は UNIQUE なのでインデックス照会。ANY で複数の正規化変形
+// (入力そのまま / 末尾スラッシュあり・なし)を1クエリでまとめて照会する。
+func (q *Queries) GetFeedByWebsiteURL(ctx context.Context, websiteUrls []string) (Feed, error) {
+	row := q.db.QueryRow(ctx, getFeedByWebsiteURL, websiteUrls)
+	var i Feed
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.RegisteredAt,
+		&i.UpdatedAt,
+		&i.FeedUrl,
+		&i.WebsiteUrl,
+		&i.Description,
+		&i.Language,
+	)
+	return i, err
+}
+
 const getFeedFetchStatusByFeedID = `-- name: GetFeedFetchStatusByFeedID :one
 SELECT feed_id, last_fetched_at, next_fetch_at, status_code, error_message, last_modified, etag, fetch_interval_hours, failure_count
 FROM feed_fetch_status

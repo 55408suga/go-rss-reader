@@ -57,6 +57,15 @@ func TestFeedHandlerRegisterFeed(t *testing.T) {
 			wantCode: apperror.CodeInvalidArgument,
 		},
 		{
+			// The url validator tag accepts any scheme; the http/https
+			// allowlist must hold for the direct registration path too.
+			name:     "non-http scheme fails validation",
+			body:     `{"feed_url":"ftp://example.com/feed.xml"}`,
+			usecase:  &fakeFeedUsecase{},
+			wantErr:  true,
+			wantCode: apperror.CodeInvalidArgument,
+		},
+		{
 			name:     "usecase conflict is propagated",
 			body:     `{"feed_url":"https://example.com/feed.xml"}`,
 			usecase:  &fakeFeedUsecase{registerErr: apperror.NewConflict("uc", "dup", nil)},
