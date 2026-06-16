@@ -16,6 +16,13 @@ runs:
         cache: pnpm
         cache-dependency-path: pnpm-lock.yaml
 
+    # Container jobs run as root while the checkout is owned by the runner user,
+    # which makes git refuse commands ("dubious ownership", exit 128) — this
+    # breaks the `prepare` lifecycle script during install. Harmless elsewhere.
+    - name: Trust the workspace
+      shell: bash
+      run: git config --global --add safe.directory "${GITHUB_WORKSPACE:-$PWD}"
+
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
