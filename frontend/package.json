@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "react": "19.1.0",
@@ -29,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.19",
     "@eslint/eslintrc": "^3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@playwright/test": "1.49.1"
   }
 }
