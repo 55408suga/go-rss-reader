@@ -1,6 +1,6 @@
 "use client";
 
-import { Circle, List, Plus, Star } from "lucide-react";
+import { Circle, List, Plus, Star, Trash2 } from "lucide-react";
 import type { Feed } from "@/lib/api/schemas";
 import { feedAvatarColor, feedInitial } from "@/lib/format";
 import { useTheme } from "@/lib/theme";
@@ -18,6 +18,7 @@ export function Sidebar({
   onSelectNav,
   onSelectFeed,
   onAddFeed,
+  onDeleteFeed,
 }: {
   feeds: Feed[];
   activeView: ReaderView;
@@ -27,6 +28,7 @@ export function Sidebar({
   onSelectNav: (key: NavKey) => void;
   onSelectFeed: (feedId: string) => void;
   onAddFeed: () => void;
+  onDeleteFeed: (feedId: string) => void;
 }) {
   const { theme } = useTheme();
   const dark = theme === "dark";
@@ -103,29 +105,49 @@ export function Sidebar({
               const active =
                 activeView.kind === "feed" && activeView.feedId === feed.id;
               return (
-                <button
-                  type="button"
+                <div
                   key={feed.id}
-                  onClick={() => onSelectFeed(feed.id)}
-                  className={`flex items-center gap-[10px] rounded-[9px] px-[11px] py-[6px] text-[13px] text-ink hover:bg-panel ${
-                    active ? "bg-panel font-bold" : ""
+                  className={`group/feed flex items-center gap-[8px] rounded-[9px] pl-[11px] pr-[5px] hover:bg-panel ${
+                    active ? "bg-panel" : ""
                   }`}
                 >
-                  <span
-                    className="flex size-[22px] shrink-0 items-center justify-center rounded-[7px] text-[11px] font-bold text-white"
-                    style={{ background: feedAvatarColor(feed, dark) }}
+                  <button
+                    type="button"
+                    data-testid="feed-select"
+                    onClick={() => onSelectFeed(feed.id)}
+                    className={`flex min-w-0 flex-1 items-center gap-[10px] py-[6px] text-[13px] text-ink ${
+                      active ? "font-bold" : ""
+                    }`}
                   >
-                    {feedInitial(feed.title)}
-                  </span>
-                  <span className="flex-1 truncate text-left">
-                    {feed.title}
-                  </span>
+                    <span
+                      className="flex size-[22px] shrink-0 items-center justify-center rounded-[7px] text-[11px] font-bold text-white"
+                      style={{ background: feedAvatarColor(feed, dark) }}
+                    >
+                      {feedInitial(feed.title)}
+                    </span>
+                    <span className="flex-1 truncate text-left">
+                      {feed.title}
+                    </span>
+                  </button>
                   {unread > 0 && (
                     <span className="min-w-[18px] rounded-[10px] bg-orange px-[6px] text-center text-[11px] font-bold text-white">
                       {unread}
                     </span>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    data-testid="feed-delete"
+                    aria-label={`${feed.title} を削除`}
+                    onClick={() => {
+                      if (window.confirm(`「${feed.title}」を削除しますか？`)) {
+                        onDeleteFeed(feed.id);
+                      }
+                    }}
+                    className="shrink-0 rounded-md p-1 text-mut2 opacity-0 transition-opacity hover:text-orange focus-visible:opacity-100 group-hover/feed:opacity-100"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               );
             })}
       </div>

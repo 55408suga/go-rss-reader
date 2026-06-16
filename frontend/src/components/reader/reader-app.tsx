@@ -12,6 +12,7 @@ import {
 import type { Article } from "@/lib/api/schemas";
 import {
   useArticles,
+  useDeleteFeed,
   useFeeds,
   useRefreshFeed,
   type ArticleScope,
@@ -48,6 +49,7 @@ export function ReaderApp() {
   const scope = scopeFor(view);
   const articlesQuery = useArticles(scope);
   const refreshFeed = useRefreshFeed();
+  const deleteFeed = useDeleteFeed();
 
   const loadedArticles = useMemo(
     () => articlesQuery.data?.pages.flatMap((p) => p.items) ?? [],
@@ -104,6 +106,14 @@ export function ReaderApp() {
     }
   }
 
+  function removeFeed(feedId: string) {
+    // Leave a feed-scoped view if its feed is being deleted.
+    if (view.kind === "feed" && view.feedId === feedId) {
+      setView({ kind: "all" });
+    }
+    deleteFeed.mutate(feedId);
+  }
+
   const empty =
     feeds.length === 0 ? (
       <EmptyState
@@ -147,6 +157,7 @@ export function ReaderApp() {
         onSelectNav={(key) => setView({ kind: key })}
         onSelectFeed={(feedId) => setView({ kind: "feed", feedId })}
         onAddFeed={() => setDialogOpen(true)}
+        onDeleteFeed={removeFeed}
       />
 
       <Timeline

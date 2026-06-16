@@ -25,29 +25,23 @@ function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
 }
 
-/**
- * Resolves the initial theme on the client. The blocking script in layout.tsx
- * (see `themeInitScript`) has already set the `.dark` class before paint, so we
- * read it back here to stay consistent and avoid a flash.
- */
-function readInitialTheme(): Theme {
-  if (typeof document !== "undefined") {
-    return document.documentElement.classList.contains("dark")
-      ? "dark"
-      : "light";
-  }
-  return "light";
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(readInitialTheme);
+  // Start as "light" on the server and the first client render so the markup
+  // matches; then adopt the theme the pre-paint script already applied (from
+  // localStorage / OS preference) once mounted. This avoids a hydration
+  // mismatch on theme-dependent markup such as the toggle icon, while the
+  // colors themselves never flash because themeInitScript set .dark pre-paint.
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    setThemeState(
+      document.documentElement.classList.contains("dark") ? "dark" : "light",
+    );
+  }, []);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
+    applyTheme(t);
     try {
       window.localStorage.setItem(STORAGE_KEY, t);
     } catch {
