@@ -40,10 +40,8 @@ export function isNewArticle(article: Article, ctx: ReadingContext): boolean {
   if (Number.isNaN(publishedAt)) return false;
   // Reading an article clears its "new" flag.
   if (ctx.readIds.has(article.id)) return false;
-
-  // TODO: flag articles published after the previous visit. Not yet
-  // implemented — RED checkpoint (see article-status.test.ts).
-  return false;
+  // New = published strictly after the user's previous visit.
+  return publishedAt > ctx.lastVisitedAt;
 }
 
 export function articleStatus(

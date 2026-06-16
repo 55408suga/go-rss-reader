@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
+/*
+ * Signal design tokens (design_handoff_signal_reader/README.md).
+ * Dark mode is class-based (toggled by ThemeProvider), not prefers-color-scheme,
+ * so define the custom `dark` variant explicitly.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cyan: #17a2d6;
+  --cyan-d: #0f86b6;
+  --cyan-t: #e9f6fc;
+  --orange: #f7931e;
+  --orange-t: #fdeed8;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --tint: #f0f8fc;
+  --line: #e2eef4;
+  --ink: #15252e;
+  --mut: #5e7682;
+  --mut2: #9cb2bd;
 }
 
+.dark {
+  --cyan: #2fb4e6;
+  --cyan-d: #74cef2;
+  --cyan-t: rgba(47, 180, 230, 0.14);
+  --orange: #f7a23a;
+  --orange-t: rgba(247, 162, 58, 0.16);
+  --bg: #0b1217;
+  --panel: #16222a;
+  --tint: #0f181e;
+  --line: #1f2d35;
+  --ink: #e6f0f5;
+  --mut: #8aa0ab;
+  --mut2: #546873;
+}
+
+/*
+ * Map the runtime CSS variables into the Tailwind theme with `inline` so the
+ * generated utilities (bg-tint, text-ink, border-line, ...) resolve the live
+ * variable and therefore follow the .dark override automatically.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-cyan: var(--cyan);
+  --color-cyan-d: var(--cyan-d);
+  --color-cyan-t: var(--cyan-t);
+  --color-orange: var(--orange);
+  --color-orange-t: var(--orange-t);
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-tint: var(--tint);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-mut: var(--mut);
+  --color-mut2: var(--mut2);
+
+  --font-sans:
+    var(--font-space-grotesk), "Hanken Grotesk", system-ui, sans-serif;
+  --font-serif:
+    var(--font-source-serif), var(--font-noto-serif-jp), serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
 }
