@@ -182,15 +182,15 @@ test.describe("Japanese typography", () => {
     await page.goto("/");
     await page.getByText("Alpha article from A").waitFor();
     const family = await computed(page, 'article[role="link"] h3', "fontFamily");
-    expect(family).toContain("Noto_Sans_JP");
-    expect(family).not.toContain("Noto_Serif_JP");
+    expect(family).toContain("Noto Sans JP");
+    expect(family).not.toContain("Noto Serif JP");
   });
 
   test("UI headings (sans stack) include the Noto Sans JP webfont", async ({ page }) => {
     await page.goto("/");
     await page.locator("h1").first().waitFor();
     const family = await computed(page, "h1", "fontFamily");
-    expect(family).toContain("Noto_Sans_JP");
+    expect(family).toContain("Noto Sans JP");
   });
 
   test("Japanese titles and headings do not tighten letter-spacing", async ({ page }) => {

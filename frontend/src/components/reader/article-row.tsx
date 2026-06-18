@@ -68,7 +68,7 @@ export function ArticleRow({
         </div>
 
         <h3
-          className={`mb-1 font-serif text-[16.5px] font-semibold leading-[1.42] tracking-[-0.005em] ${
+          className={`mb-1 font-serif text-[16.5px] font-semibold leading-[1.42] ${
             status.read ? "text-mut" : "text-ink"
           }`}
         >
