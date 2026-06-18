@@ -191,22 +191,26 @@ export async function listFeedArticles(
 
 export async function registerFeed(
   feedUrl: string,
+  signal?: AbortSignal,
 ): Promise<{ feed: Feed; articles: Article[] }> {
   const { data } = await requestJson(`/feeds`, FeedWithArticlesEnvelope, {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify({ feed_url: feedUrl }),
+    signal,
   });
   return data;
 }
 
 export async function discoverFeed(
   websiteUrl: string,
+  signal?: AbortSignal,
 ): Promise<{ feed: Feed; articles: Article[]; candidates: FeedCandidate[] }> {
   const { data } = await requestJson(`/feeds/discover`, DiscoverEnvelope, {
     method: "POST",
     headers: jsonHeaders,
     body: JSON.stringify({ website_url: websiteUrl }),
+    signal,
   });
   return data;
 }

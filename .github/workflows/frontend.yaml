@@ -27,6 +27,10 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              with:
+                # Read-only CI (lint/typecheck/test/build); no authenticated git
+                # ops, so don't leave the token in the runner's git config.
+                persist-credentials: false
 
             - name: Set up frontend
               uses: ./.github/actions/setup-frontend
@@ -40,6 +44,10 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              with:
+                # Read-only CI (lint/typecheck/test/build); no authenticated git
+                # ops, so don't leave the token in the runner's git config.
+                persist-credentials: false
 
             - name: Set up frontend
               uses: ./.github/actions/setup-frontend
@@ -53,6 +61,10 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              with:
+                # Read-only CI (lint/typecheck/test/build); no authenticated git
+                # ops, so don't leave the token in the runner's git config.
+                persist-credentials: false
 
             - name: Set up frontend
               uses: ./.github/actions/setup-frontend
@@ -70,6 +82,10 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              with:
+                # Read-only CI (lint/typecheck/test/build); no authenticated git
+                # ops, so don't leave the token in the runner's git config.
+                persist-credentials: false
 
             - name: Set up frontend
               uses: ./.github/actions/setup-frontend
@@ -83,6 +99,10 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              with:
+                # Read-only CI (lint/typecheck/test/build); no authenticated git
+                # ops, so don't leave the token in the runner's git config.
+                persist-credentials: false
 
             - name: Set up frontend
               uses: ./.github/actions/setup-frontend

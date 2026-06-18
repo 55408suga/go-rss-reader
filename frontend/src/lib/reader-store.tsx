@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -52,7 +51,6 @@ export function ReaderStoreProvider({ children }: { children: ReactNode }) {
   // Default threshold is "now" so nothing is flagged new before the effect
   // below replaces it with the *previous* visit time.
   const [lastVisitedAt, setLastVisitedAt] = useState<number>(() => Date.now());
-  const hydrated = useRef(false);
 
   // Hydrate from localStorage once, on mount (client only).
   useEffect(() => {
@@ -69,7 +67,6 @@ export function ReaderStoreProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    hydrated.current = true;
   }, []);
 
   const markRead = useCallback((id: string) => {

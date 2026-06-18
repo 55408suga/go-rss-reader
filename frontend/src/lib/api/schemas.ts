@@ -9,14 +9,9 @@ import { z } from "zod";
 // into a loud, early error instead of an "undefined is not an object" deep in
 // the UI.
 
-// Backend IDs are UUIDv7. z.string().uuid() in older zod versions rejects the
-// v7 variant, so we use a permissive RFC 4122 shape that accepts any version.
-const uuid = z
-  .string()
-  .regex(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    "must be a UUID",
-  );
+// Backend IDs are UUIDv7. zod's .uuid() validates the RFC 4122 shape without
+// constraining the version nibble, so it accepts v7 (verified on zod 3.25).
+const uuid = z.string().uuid();
 
 // RFC3339 timestamps may carry a "Z" or a numeric offset.
 const rfc3339 = z.string().datetime({ offset: true });
@@ -25,7 +20,7 @@ export const FeedSchema = z.object({
   id: uuid,
   title: z.string(),
   feed_url: z.string().url(),
-  website_url: z.string(),
+  website_url: z.string().url(),
   description: z.string(),
   registered_at: rfc3339,
   updated_at: rfc3339,
@@ -44,11 +39,17 @@ export const ArticleSchema = z.object({
 });
 
 // FeedCandidate is a value object returned by POST /feeds/discover; it is never
-// persisted. mime_type is one of rss+xml / atom+xml / feed+json.
+// persisted. The backend (gateway/discovery_gateway.go:feedMIMEType) is a closed
+// switch that only emits these three full MIME types, so a strict enum is safe:
+// emitting anything else would require a backend change anyway.
 export const FeedCandidateSchema = z.object({
   feed_url: z.string().url(),
   title: z.string(),
-  mime_type: z.string(),
+  mime_type: z.enum([
+    "application/rss+xml",
+    "application/atom+xml",
+    "application/feed+json",
+  ]),
 });
 
 export const PaginationSchema = z.object({
