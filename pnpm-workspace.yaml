@@ -1,4 +1,7 @@
 packages:
-    - "frontend/*"
+  - "frontend"
 allowBuilds:
+  esbuild: true
   lefthook: true
+  sharp: true
+  unrs-resolver: true

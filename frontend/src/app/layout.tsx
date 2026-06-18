@@ -1,0 +1,53 @@
+import type { Metadata } from "next";
+import { Noto_Serif_JP, Source_Serif_4, Space_Grotesk } from "next/font/google";
+import "./globals.css";
+import { Providers } from "./providers";
+import { themeInitScript } from "@/lib/theme";
+
+// UI sans (wordmark, headings, nav).
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+// Serif for article titles and body (Latin).
+const sourceSerif = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-source-serif",
+  display: "swap",
+});
+
+// Japanese serif fallback. CJK fonts are large, so disable preload.
+const notoSerifJp = Noto_Serif_JP({
+  weight: ["400", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-noto-serif-jp",
+  display: "swap",
+  preload: false,
+});
+
+export const metadata: Metadata = {
+  title: "FeedGo — RSS Reader",
+  description: "テックブログを中心に購読する RSS リーダー",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ja" suppressHydrationWarning>
+      <head>
+        {/* Set the theme class before paint to avoid a light/dark flash. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body
+        className={`${spaceGrotesk.variable} ${sourceSerif.variable} ${notoSerifJp.variable} antialiased`}
+      >
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
