@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# frontend — go-rss-reader リーダー UI
 
-## Getting Started
+`go-rss-reader` のフロントエンド(Signal リーダー UI)です。バックエンド API(`/api/v1`)を
+TanStack Query 経由で呼び出し、フィードと記事を閲覧します。プロジェクト全体の概要・API 仕様・
+構成は、リポジトリルートの [`../README.md`](../README.md) を参照してください。
 
-First, run the development server:
+## 技術スタック
+
+- Next.js 15.5(App Router / Turbopack)
+- React 19
+- TanStack Query(データ取得・キャッシュ)
+- Zod(API レスポンスのスキーマ検証)
+- Tailwind CSS v4
+- lucide-react(アイコン)
+- Vitest(ユニット)/ Playwright(E2E)
+
+> 既読・スター・新着の状態はフロントエンド側で保持します(バックエンドには永続化されません)。
+
+## 起動
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+接続先 API は環境変数 `NEXT_PUBLIC_API_BASE_URL` で指定します(未設定時は `http://localhost:8080`)。
+バックエンドの起動方法は [`../README.md`](../README.md) のクイックスタートを参照してください。
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+## テスト / 各種コマンド
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm test                 # Vitest(ユニット)
+pnpm test:e2e:install     # 初回のみ: Playwright 用 Chromium を取得
+pnpm test:e2e             # Playwright(E2E)
+pnpm lint                 # ESLint
+pnpm typecheck            # tsc --noEmit
+pnpm build                # 本番ビルド
+```
 
-## Learn More
+## ディレクトリ構成
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/                  # App Router(layout / page / providers / error / loading / globals.css)
+├── components/reader/    # リーダー UI(sidebar / timeline / article-row / add-feed-dialog ...)
+└── lib/
+    ├── api/              # API クライアント(client.ts)とスキーマ(schemas.ts)
+    ├── hooks.ts          # TanStack Query フック
+    ├── reader-store.tsx  # 既読/スター/新着のクライアント状態
+    ├── theme.tsx
+    └── format.ts
+```
