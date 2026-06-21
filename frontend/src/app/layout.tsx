@@ -33,6 +33,10 @@ export const metadata: Metadata = {
   description: "テックブログを中心に購読する RSS リーダー",
 };
 
+/**
+ * Renders the root HTML layout with theme initialization, font configuration, and
+ * app-wide providers.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

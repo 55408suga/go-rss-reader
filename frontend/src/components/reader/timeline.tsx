@@ -9,6 +9,15 @@ import { ArticleRow } from "./article-row";
 import { RssWave } from "./rss-wave";
 import { ErrorPanel, TimelineSkeleton } from "./states";
 
+/**
+ * Renders a timeline of articles with pagination, theme controls, and refresh functionality.
+ *
+ * Displays articles in a scrollable feed with infinite scrolling that automatically loads the next page
+ * when the user scrolls to the bottom. The header shows article counts, refresh and theme toggle buttons.
+ * Handles loading, error, and empty states with appropriate UI feedback.
+ *
+ * @returns The rendered timeline component.
+ */
 export function Timeline({
   title,
   newCount,

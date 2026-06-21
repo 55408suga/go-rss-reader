@@ -13,6 +13,11 @@ import {
 import { useTheme } from "@/lib/theme";
 import { RssWave } from "./rss-wave";
 
+/**
+ * Renders an interactive row for displaying an article with metadata and actions.
+ *
+ * @returns A React element representing the article row
+ */
 export function ArticleRow({
   article,
   feed,
