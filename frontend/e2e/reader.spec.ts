@@ -163,3 +163,40 @@ test("deletes a feed", async ({ page }) => {
   await expect(sidebar.getByText("Mock Feed B")).toHaveCount(0);
   await expect(sidebar.getByText("Mock Feed A")).toBeVisible();
 });
+
+// Japanese typography: the article body (serif stack) and the UI chrome (sans
+// stack) must both resolve their CJK fallback to Noto Sans JP (gothic), and
+// Japanese-bearing headings/titles must not carry the Latin-tuned negative
+// letter-spacing. These assert the *computed* CSS in a real browser, since
+// next/font hashes the family name and Tailwind's tracking only resolves there.
+test.describe("Japanese typography", () => {
+  const computed = (page: Page, selector: string, prop: "fontFamily" | "letterSpacing") =>
+    page.locator(selector).first().evaluate(
+      (node, p) => getComputedStyle(node as HTMLElement)[p as "fontFamily" | "letterSpacing"],
+      prop,
+    );
+
+  test("article titles (serif stack) fall back to Noto Sans JP, not Noto Serif JP", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByText("Alpha article from A").waitFor();
+    const family = await computed(page, 'article[role="link"] h3', "fontFamily");
+    expect(family).toContain("Noto Sans JP");
+    expect(family).not.toContain("Noto Serif JP");
+  });
+
+  test("UI headings (sans stack) include the Noto Sans JP webfont", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("h1").first().waitFor();
+    const family = await computed(page, "h1", "fontFamily");
+    expect(family).toContain("Noto Sans JP");
+  });
+
+  test("Japanese titles and headings do not tighten letter-spacing", async ({ page }) => {
+    await page.goto("/");
+    await page.getByText("Alpha article from A").waitFor();
+    expect(await computed(page, 'article[role="link"] h3', "letterSpacing")).toBe("normal");
+    expect(await computed(page, "h1", "letterSpacing")).toBe("normal");
+  });
+});
