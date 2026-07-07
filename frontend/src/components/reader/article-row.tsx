@@ -13,6 +13,11 @@ import {
 import { useTheme } from "@/lib/theme";
 import { RssWave } from "./rss-wave";
 
+/**
+ * Renders an interactive row for displaying an article with metadata and actions.
+ *
+ * @returns A React element representing the article row
+ */
 export function ArticleRow({
   article,
   feed,
@@ -68,7 +73,7 @@ export function ArticleRow({
         </div>
 
         <h3
-          className={`mb-1 font-serif text-[16.5px] font-semibold leading-[1.42] tracking-[-0.005em] ${
+          className={`mb-1 font-serif text-[16.5px] font-semibold leading-[1.42] ${
             status.read ? "text-mut" : "text-ink"
           }`}
         >

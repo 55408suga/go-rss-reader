@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Serif_JP, Source_Serif_4, Space_Grotesk } from "next/font/google";
+import { Noto_Sans_JP, Source_Serif_4, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { themeInitScript } from "@/lib/theme";
@@ -18,11 +18,12 @@ const sourceSerif = Source_Serif_4({
   display: "swap",
 });
 
-// Japanese serif fallback. CJK fonts are large, so disable preload.
-const notoSerifJp = Noto_Serif_JP({
-  weight: ["400", "600", "700"],
+// Japanese gothic fallback for both the UI (sans) and article text (serif).
+// CJK fonts are large, so disable preload; glyph chunks load lazily via swap.
+const notoSansJp = Noto_Sans_JP({
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-noto-serif-jp",
+  variable: "--font-noto-sans-jp",
   display: "swap",
   preload: false,
 });
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
   description: "テックブログを中心に購読する RSS リーダー",
 };
 
+/**
+ * Renders the root HTML layout with theme initialization, font configuration, and
+ * app-wide providers.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,7 +49,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${sourceSerif.variable} ${notoSerifJp.variable} antialiased`}
+        className={`${spaceGrotesk.variable} ${sourceSerif.variable} ${notoSansJp.variable} font-sans antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

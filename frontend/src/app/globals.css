@@ -56,10 +56,19 @@
   --color-mut: var(--mut);
   --color-mut2: var(--mut2);
 
+  /*
+   * Japanese in both stacks falls back to Noto Sans JP (gothic); Latin uses
+   * Space Grotesk (sans) / Source Serif 4 (serif). Kept `inline` so the
+   * `font-sans` / `font-serif` utilities inline the stack onto the element
+   * (<body> and article titles), where next/font's `--font-*` vars are defined
+   * and can resolve. Declaring `--font-sans` at :root instead fails: next/font
+   * sets `--font-space-grotesk` etc. on <body>, not :root, so a :root-level
+   * `var()` is invalid-at-computed-value-time and silently drops the fonts.
+   */
   --font-sans:
-    var(--font-space-grotesk), "Hanken Grotesk", system-ui, sans-serif;
-  --font-serif:
-    var(--font-source-serif), var(--font-noto-serif-jp), serif;
+    var(--font-space-grotesk), var(--font-noto-sans-jp), "Hanken Grotesk",
+    system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), var(--font-noto-sans-jp), serif;
 }
 
 html,
@@ -70,5 +79,4 @@ body {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-sans);
 }
